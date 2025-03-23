@@ -1,0 +1,2 @@
+C:/Users/George/Desktop/odoo/android/app/.cxx/RelWithDebInfo/20g15w1o/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/Users/George/Desktop/odoo/android/app/.cxx/RelWithDebInfo/20g15w1o/armeabi-v7a/CMakeFiles/rebuild_cache.dir
