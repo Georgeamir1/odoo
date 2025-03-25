@@ -249,10 +249,12 @@ class _newdeliveryorderState extends State<newInventoryReceiptsScreen> {
                             _orderLines[index].selectedProduct = value;
                             _orderLines[index].unitPrice =
                                 selectedProduct['list_price'];
+                            _orderLines[index].productId = selectedProduct[
+                                'product_variant_ids']; // Store product ID
+                            print(_orderLines[index].productId);
                             _orderLines[index].productId =
-                                selectedProduct['id']; // Store product ID
-                            _orderLines[index].StocQuantitiy = selectedProduct[
-                                'qty_available']; // Available quantity
+                                selectedProduct['product_variant_ids']
+                                    [0]; // Available quantity
                             _orderLines[index].unitId = selectedProduct[
                                     'uom_id'] ??
                                 1; // Store UoM ID (defaults to 1 if missing)

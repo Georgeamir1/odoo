@@ -111,13 +111,21 @@ Widget _buildDetailRow(IconData icon, String label, String value) {
           color: Colors.grey.shade600,
         ),
       ),
-      const Spacer(),
-      Text(
-        value,
-        style: GoogleFonts.poppins(
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-          color: Colors.blueGrey.shade800,
+      SizedBox(
+        width: 8,
+      ),
+      Expanded(
+        child: Directionality(
+          textDirection: TextDirection.rtl,
+          child: Text(
+            overflow: TextOverflow.ellipsis,
+            value,
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: Colors.blueGrey.shade800,
+            ),
+          ),
         ),
       ),
     ],

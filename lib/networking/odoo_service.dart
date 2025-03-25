@@ -1,12 +1,13 @@
 import 'package:odoo_rpc/odoo_rpc.dart';
+import 'dart:convert';
 
 class OdooRpcService {
   static final OdooRpcService _instance = OdooRpcService._internal();
   factory OdooRpcService() => _instance;
   OdooRpcService._internal();
 
-  final OdooClient client = OdooClient("http://192.168.1.220:8069");
-  String _dbName = "base";
+  final OdooClient client = OdooClient("https://elmasa-eg.com");
+  String _dbName = "testIV";
   int? _userId;
   String? _sessionId;
 
@@ -26,8 +27,15 @@ class OdooRpcService {
 
   Future<dynamic> callKw(Map<String, dynamic> params) async {
     try {
-      return await client.callKw(params);
+      print("Sending Odoo RPC request: ${jsonEncode(params)}");
+      final response = await client.callKw(params);
+      print("Received Odoo RPC response: ${jsonEncode(response)}");
+      return response;
+    } on OdooException catch (e) {
+      print("OdooException: ${e.message}");
+      throw Exception("Odoo RPC Error: ${e.message}");
     } catch (e) {
+      print("Unexpected Error: $e");
       throw Exception("callKw failed: $e");
     }
   }
@@ -60,36 +68,64 @@ class OdooRpcService {
   }
 
   Future<List<dynamic>> fetchRecords(
-      String model, List domain, List<String> fields) async {
+    String model,
+    List domain,
+    List<String> fields,
+  ) async {
     try {
+      print("Fetching records from model: $model");
+      print("Domain: ${jsonEncode(domain)}");
+      print("Fields: ${fields.join(", ")}");
+
       final response = await client.callKw({
         'model': model,
         'method': 'search_read',
         'args': [domain],
-        'kwargs': {'fields': fields}
+        'kwargs': {
+          'fields': fields,
+        },
       });
 
-      return response;
+      if (response is List) {
+        print("Fetched ${response.length} records");
+        return response;
+      } else {
+        throw Exception(
+            "Invalid response format: Expected List, got ${response.runtimeType}");
+      }
     } catch (e) {
       print("Error fetching records: $e");
-      return [];
+      throw Exception("Failed to fetch records: $e");
     }
-  } //read
+  }
 
   Future<int?> createRecord(String model, Map<String, dynamic> values) async {
     try {
+      print("Creating record in model: $model");
+      print("Record data: ${jsonEncode(values)}");
+
       final response = await client.callKw({
         'model': model,
         'method': 'create',
         'args': [values],
         'kwargs': {},
       });
-      return response as int?;
+
+      if (response is int) {
+        print("Record created successfully with ID: $response");
+        return response;
+      } else {
+        throw Exception(
+            "Invalid response format: Expected int, got ${response.runtimeType}");
+      }
+    } on OdooException catch (e) {
+      print("OdooException while creating record: ${e.message}");
+      throw Exception("Failed to create record: ${e.message}");
     } catch (e) {
-      print("Error creating record: $e");
-      return null;
+      print("Unexpected error while creating record: $e");
+      throw Exception("Failed to create record: $e");
     }
-  } //creat
+  }
 
   Future<bool> updateRecord(
       String model, int id, Map<String, dynamic> values) async {
@@ -131,12 +167,18 @@ class OdooRpcService {
       print("Error deleting record: $e");
       return false;
     }
-  } //delet
+  }
 
-  void logout() {
-    client.destroySession();
-    _userId = null;
-    _sessionId = null;
-    print("User logged out.");
+  Future<void> logout() async {
+    try {
+      print("Logging out user: $_userId");
+      await client.destroySession();
+      _userId = null;
+      _sessionId = null;
+      print("User logged out successfully.");
+    } catch (e) {
+      print("Error during logout: $e");
+      throw Exception("Failed to logout: $e");
+    }
   }
 }

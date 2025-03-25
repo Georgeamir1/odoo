@@ -1,4 +1,3 @@
-
 import 'dart:convert';
 
 import 'package:flutter/cupertino.dart';
@@ -19,8 +18,14 @@ class PartnersCubit extends Cubit<PartnersState> {
     emit(
         PartnersLoadingState()); // Emit loading state before starting the request
     try {
-      List<dynamic> partners =
-          await odooService.fetchRecords("res.partner", [], ["name", "email","id"], );
+      List<dynamic> partners = await odooService.fetchRecords(
+        "res.partner",
+        [
+          ["active", "=", true],
+          ["customer_rank", "=", "1"]
+        ],
+        ["name", "email", "id", "property_product_pricelist"],
+      );
       emit(PartnersLoadedState(partners)); // Emit success state with partners
     } catch (e) {
       emit(PartnersErrorState(
@@ -38,7 +43,6 @@ class PartnersCubit extends Cubit<PartnersState> {
       ));
     }
   }
-
 
   List<dynamic> get Customers {
     if (state is PartnersLoadedState) {
@@ -59,11 +63,14 @@ class ProductsCubit extends Cubit<ProductsState> {
         ProductsLoadingState()); // Emit loading state before starting the request
     try {
       List<dynamic> Products =
-          await odooService.fetchRecords("product.template", [], [
+          await odooService.fetchRecords("product.template", [
+        ["active", "=", true]
+      ], [
         "name",
         "id",
         "list_price",
         "qty_available",
+        "product_variant_ids"
       ]);
       emit(ProductsLoadedState(Products)); // Emit success state with Products
     } catch (e) {
@@ -86,6 +93,48 @@ class ProductsCubit extends Cubit<ProductsState> {
     }
     return []; // Return an empty list if partners are not loaded yet
   }
+}
+
+class PricelistCubit extends Cubit<ProductsState> {
+  final OdooRpcService odooService = OdooRpcService();
+
+  PricelistCubit() : super(ProductsLoadingState());
+
+  static PricelistCubit get(context) => BlocProvider.of(context);
+
+  // جلب السعر بناءً على pricelist_id و product_id
+  void getProductPrice(
+    int pricelistId,
+    int productId,
+  ) async {
+    emit(ProductsLoadingState());
+    try {
+      List<dynamic> result = await odooService.fetchRecords(
+        "product.pricelist.item",
+        [
+          ["pricelist_id", "=", pricelistId],
+          ["product_tmpl_id", "=", productId]
+        ],
+        ["fixed_price"],
+      );
+
+      if (result.isNotEmpty) {
+        double price = result.first["fixed_price"] ?? 0.0;
+
+        emit(ProductPriceLoadedState(price));
+      } else {
+        emit(ProductsErrorState("No price found for this product"));
+      }
+    } catch (e) {
+      emit(ProductsErrorState(e.toString()));
+    }
+  }
+}
+
+// الحالة الجديدة لحفظ السعر
+class ProductPriceLoadedState extends ProductsState {
+  final double price;
+  ProductPriceLoadedState(this.price);
 }
 
 class TaxesCubit extends Cubit<TaxesState> {
@@ -147,14 +196,12 @@ class PaymentTermCubit extends Cubit<PaymentTermState> {
     }
   }
 
-  void setSelectedPaymentTerm(String? PaymentTermName,PaymentTermId) {
+  void setSelectedPaymentTerm(String? PaymentTermName, PaymentTermId) {
     if (state is PaymentTermLoadedState) {
       final currentState = state as PaymentTermLoadedState;
-      emit(PaymentTermLoadedState(
-          currentState.paymentTerm,
+      emit(PaymentTermLoadedState(currentState.paymentTerm,
           selectedPaymentTerm: PaymentTermName,
-          selectedPaymentTermId: PaymentTermId
-      ));
+          selectedPaymentTermId: PaymentTermId));
     }
   }
 
@@ -168,19 +215,19 @@ class PaymentTermCubit extends Cubit<PaymentTermState> {
 
 class SaleOrderCubit extends Cubit<SaleOrderState> {
   // Convenience getter to retrieve the cubit instance from the context.
-  static SaleOrderCubit get(BuildContext context) => BlocProvider.of<SaleOrderCubit>(context);
+  static SaleOrderCubit get(BuildContext context) =>
+      BlocProvider.of<SaleOrderCubit>(context);
 
   final odooService = OdooRpcService();
 
   SaleOrderCubit() : super(SaleOrderInitial());
 
-  /// Creates a sale order using the provided [orderData] map,
-  /// then confirms the order by calling the 'action_confirm' method.
   Future<void> createAndConfirmSaleOrder(Map<String, dynamic> orderData) async {
     emit(SaleOrderLoading());
     try {
       // Create the sale order.
-      final saleOrderId = await odooService.createRecord("sale.order", orderData);
+      final saleOrderId =
+          await odooService.createRecord("sale.order", orderData);
       if (saleOrderId != null) {
         // Confirm the sale order by calling action_confirm.
         await odooService.client.callKw({
@@ -202,7 +249,6 @@ class SaleOrderCubit extends Cubit<SaleOrderState> {
     }
   }
 
-  /// Creates a delivery order based on the provided [orderData].
   Future<void> createAndConfirmStockPicking({
     required int partnerId,
     required int pickingTypeId,
@@ -212,8 +258,11 @@ class SaleOrderCubit extends Cubit<SaleOrderState> {
   }) async {
     try {
       final moveIdsWithoutPackage = orderLines.map((line) {
-        if (line.productId == null || line.quantity == null || line.unitId == null) {
-          throw Exception("🚨 Invalid order line data: ${jsonEncode(line.toJson())}");
+        if (line.productId == null ||
+            line.quantity == null ||
+            line.unitId == null) {
+          throw Exception(
+              "🚨 Invalid order line data: ${jsonEncode(line.toJson())}");
         }
         return [
           0,
@@ -230,7 +279,6 @@ class SaleOrderCubit extends Cubit<SaleOrderState> {
       }).toList();
 
       final pickingData = {
-
         "partner_id": partnerId,
         "picking_type_id": pickingTypeId,
         "location_id": locationId,
@@ -254,7 +302,9 @@ class SaleOrderCubit extends Cubit<SaleOrderState> {
       final confirmResponse = await odooService.client.callKw({
         'model': 'stock.picking',
         'method': 'action_confirm',
-        'args': [[pickingId]],
+        'args': [
+          [pickingId]
+        ],
         'kwargs': {},
       });
 
@@ -270,12 +320,15 @@ class SaleOrderCubit extends Cubit<SaleOrderState> {
   Future<void> createInventoryReceipt(Map<String, dynamic> pickingData) async {
     emit(SaleOrderLoading());
     try {
-      final receiptId = await odooService.createRecord("stock.picking", pickingData);
+      final receiptId =
+          await odooService.createRecord("stock.picking", pickingData);
       if (receiptId != null) {
         await odooService.client.callKw({
           'model': 'stock.picking',
           'method': 'button_validate', // Confirms the inventory receipt
-          'args': [[receiptId]],
+          'args': [
+            [receiptId]
+          ],
           'kwargs': {}
         });
         print("Inventory Receipt Created & Confirmed: $receiptId");

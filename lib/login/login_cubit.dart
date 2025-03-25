@@ -12,7 +12,7 @@ class LoginCubit extends Cubit<LoginState> {
     emit(LoginLoading()); // Emit loading state
 
     try {
-      bool success = await odooService.login(username, password);
+      bool success = (await odooService.login(username, password)) as bool;
       if (success) {
         emit(LoginSuccess("Logged in successfully!")); // Emit success state
       } else {

@@ -29,7 +29,7 @@ class InventoryReceiptsDetailPage extends StatelessWidget {
         appBar: AppBar(
           iconTheme: const IconThemeData(color: Colors.white),
           title: Text(
-            AppLocalizations.of(context).deliveryOrderDetails,
+            AppLocalizations.of(context).inventory_receipts_details,
             style: const TextStyle(color: Colors.white),
           ),
           centerTitle: true,

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:odoo/sales_order/sales_order_cubit.dart';
 import 'package:odoo/sales_order/sales_order_status.dart';
+import 'package:shimmer/main.dart';
 
 import '../localization.dart';
 
@@ -18,6 +19,7 @@ class _QuotationScreenState extends State<QuotationScreen> {
   final _expirationDateController = TextEditingController();
   final _dateController = TextEditingController();
   var customerId;
+  var pricelist;
   var paymentTermId;
   var paymentTermName;
   var payment_term;
@@ -52,6 +54,7 @@ class _QuotationScreenState extends State<QuotationScreen> {
         BlocProvider(create: (context) => PaymentTermCubit()..getPaymentTerm()),
         BlocProvider(create: (context) => TaxesCubit()..getTaxes()),
         BlocProvider(create: (context) => SaleOrderCubit()),
+        BlocProvider(create: (context) => PricelistCubit()),
       ],
       child: Scaffold(
         appBar: PreferredSize(
@@ -96,8 +99,8 @@ class _QuotationScreenState extends State<QuotationScreen> {
             children: [
               _buildCustomerSelection(),
               const SizedBox(height: 16),
-              _buildPaymentTermsSelection(),
-              const SizedBox(height: 16),
+              /* _buildPaymentTermsSelection(),
+              const SizedBox(height: 16),*/
               _buildOrderLinesSection(),
               const SizedBox(height: 16),
               _buildTotalPriceSection(),
@@ -118,36 +121,86 @@ class _QuotationScreenState extends State<QuotationScreen> {
         } else if (state is PartnersErrorState) {
           return Center(child: Text("${state.error}"));
         } else if (state is PartnersLoadedState) {
-          return _buildDropdown(
-            title: AppLocalizations.of(context).customer,
-            value: state.selectedCustomer,
-            items: state.partners
-                .map((customer) => customer['name'] as String)
-                .toList(),
-            onChanged: (value) {
-              final selectedCustomer = state.partners.firstWhere(
-                (customer) => customer['name'] == value,
+          final customers = state.partners;
+          if (customers.isEmpty) {
+            return Center(
+              child: Text(AppLocalizations.of(context).no_customers_found),
+            );
+          }
+
+          return Autocomplete<String>(
+            displayStringForOption: (option) => option,
+            optionsBuilder: (TextEditingValue textEditingValue) {
+              if (textEditingValue.text == '') {
+                return customers.map((c) => c['name'] as String).toList();
+              }
+              return customers
+                  .map((c) => c['name'] as String)
+                  .where((name) => name
+                      .toLowerCase()
+                      .contains(textEditingValue.text.toLowerCase()))
+                  .toList();
+            },
+            onSelected: (String selection) {
+              final selectedCustomer = customers.firstWhere(
+                (customer) => customer['name'] == selection,
                 orElse: () => {},
               );
 
               if (selectedCustomer.isNotEmpty) {
                 customerId = selectedCustomer['id'].toString();
+                pricelist = selectedCustomer['property_product_pricelist'][0];
+                print(pricelist);
                 final customerName = selectedCustomer['name'];
-
                 PartnersCubit.get(context)
                     .setSelectedCustomer(customerId, customerName);
               }
             },
+            fieldViewBuilder:
+                (context, textEditingController, focusNode, onFieldSubmitted) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    AppLocalizations.of(context).customer,
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: textEditingController,
+                    focusNode: focusNode,
+                    decoration: InputDecoration(
+                      labelText:
+                          "${AppLocalizations.of(context).select} ${AppLocalizations.of(context).customer}",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      suffixIcon: textEditingController.text.isNotEmpty
+                          ? IconButton(
+                              icon: Icon(Icons.clear),
+                              onPressed: () {
+                                textEditingController.clear();
+                                PartnersCubit.get(context)
+                                    .setSelectedCustomer(null, null);
+                              },
+                            )
+                          : null,
+                    ),
+                  ),
+                ],
+              );
+            },
           );
         } else {
           return Center(
-              child: Text(AppLocalizations.of(context).no_customers_found));
+            child: Text(AppLocalizations.of(context).no_customers_found),
+          );
         }
       },
     );
   }
 
-  Widget _buildPaymentTermsSelection() {
+  /*Widget _buildPaymentTermsSelection() {
     return BlocBuilder<PaymentTermCubit, PaymentTermState>(
       builder: (context, state) {
         if (state is PaymentTermLoadingState) {
@@ -169,7 +222,8 @@ class _QuotationScreenState extends State<QuotationScreen> {
                 if (selectedpaymentTerm.isNotEmpty) {
                   paymentTermId = selectedpaymentTerm['id'].toString();
                   paymentTermName = selectedpaymentTerm['name'];
-
+                  print(paymentTermId);
+                  print(paymentTermId);
                   PaymentTermCubit.get(context)
                       .setSelectedPaymentTerm(customerId, paymentTermName);
                 }
@@ -180,7 +234,7 @@ class _QuotationScreenState extends State<QuotationScreen> {
         }
       },
     );
-  }
+  }*/
 
   Widget _buildOrderLinesSection() {
     return Column(
@@ -231,40 +285,102 @@ class _QuotationScreenState extends State<QuotationScreen> {
                   } else if (state is ProductsErrorState) {
                     return Center(child: Text("${state.error}"));
                   } else if (state is ProductsLoadedState) {
+                    if (state.Products.isEmpty) {
+                      return Center(
+                          child: Text(
+                              AppLocalizations.of(context).no_products_found));
+                    }
+
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildDropdown(
-                          title: AppLocalizations.of(context).product,
-                          value: state.Products.any((product) =>
-                                  product['name'] ==
-                                  _orderLines[index].selectedProduct)
-                              ? _orderLines[index].selectedProduct
-                              : null,
-                          items: state.Products.map(
-                              (product) => product['name'] as String).toList(),
-                          onChanged: (value) => setState(() {
-                            _orderLines[index].selectedProduct = value;
-                            var selectedProduct = state.Products.firstWhere(
-                              (product) => product['name'] == value,
+                        Text(
+                          AppLocalizations.of(context).product,
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                        const SizedBox(height: 8),
+                        Autocomplete<String>(
+                          displayStringForOption: (option) => option,
+                          optionsBuilder: (TextEditingValue textEditingValue) {
+                            if (textEditingValue.text.isEmpty) {
+                              return state.Products.map(
+                                      (product) => product['name'] as String)
+                                  .toList();
+                            }
+                            return state.Products.map(
+                                    (product) => product['name'] as String)
+                                .where((name) => name.toLowerCase().contains(
+                                    textEditingValue.text.toLowerCase()))
+                                .toList();
+                          },
+                          onSelected: (String selection) {
+                            setState(() {
+                              _orderLines[index].selectedProduct = selection;
+                              var selectedProduct = state.Products.firstWhere(
+                                (product) => product['name'] == selection,
+                              );
+                              _orderLines[index].productId =
+                                  selectedProduct['product_variant_ids'][0];
+                              _orderLines[index].PriceProductId =
+                                  selectedProduct['id'];
+                              print(_orderLines[index].PriceProductId);
+
+                              // استدعاء PricelistCubit لجلب السعر بناءً على pricelist و product_id
+                              if (pricelist != null &&
+                                  _orderLines[index].productId != null) {
+                                context.read<PricelistCubit>().getProductPrice(
+                                      pricelist,
+                                      _orderLines[index].PriceProductId!,
+                                    );
+                              }
+                            });
+                          },
+                          fieldViewBuilder: (context, textEditingController,
+                              focusNode, onFieldSubmitted) {
+                            // Initialize controller with current value
+                            if (_orderLines[index].selectedProduct != null) {
+                              textEditingController.text =
+                                  _orderLines[index].selectedProduct!;
+                            }
+
+                            return TextFormField(
+                              controller: textEditingController,
+                              focusNode: focusNode,
+                              decoration: InputDecoration(
+                                labelText:
+                                    "${AppLocalizations.of(context).select} ${AppLocalizations.of(context).product}",
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                suffixIcon: textEditingController
+                                        .text.isNotEmpty
+                                    ? IconButton(
+                                        icon: const Icon(Icons.clear),
+                                        onPressed: () {
+                                          textEditingController.clear();
+                                          setState(() {
+                                            _orderLines[index].selectedProduct =
+                                                null;
+                                            _orderLines[index].unitPrice = null;
+                                            _orderLines[index].productId = null;
+                                            _orderLines[index].StocQuantitiy =
+                                                null;
+                                          });
+                                        },
+                                      )
+                                    : null,
+                              ),
                             );
-                            _orderLines[index].unitPrice =
-                                selectedProduct['list_price'];
-                            _orderLines[index].productId =
-                                selectedProduct['id']; // Store product ID
-                            _orderLines[index].StocQuantitiy = selectedProduct[
-                                'qty_available']; // Store product ID
-                          }),
+                          },
                         ),
-                        SizedBox(
-                          height: 4,
-                        ),
+                        const SizedBox(height: 4),
                         if (_orderLines[index].StocQuantitiy != null)
                           Padding(
                             padding: const EdgeInsets.all(4.0),
                             child: Text(
                               '${AppLocalizations.of(context).available_quantity}: ${_orderLines[index].StocQuantitiy?.toString() ?? ''}',
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 color: Color(0xFF714B67),
                               ),
@@ -274,13 +390,15 @@ class _QuotationScreenState extends State<QuotationScreen> {
                     );
                   } else {
                     return Center(
-                        child: Text(
-                            AppLocalizations.of(context).no_products_found));
+                      child:
+                          Text(AppLocalizations.of(context).no_products_found),
+                    );
                   }
                 },
               ),
               const SizedBox(height: 8),
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
                     child: _buildTextField(
@@ -288,17 +406,91 @@ class _QuotationScreenState extends State<QuotationScreen> {
                       keyboardType: TextInputType.number,
                       onChanged: (val) =>
                           _orderLines[index].quantity = double.tryParse(val),
+                      enabled: true,
                     ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: _buildTextField(
-                      label: AppLocalizations.of(context).unit_price,
-                      keyboardType: TextInputType.number,
-                      onChanged: (val) =>
-                          _orderLines[index].unitPrice = double.tryParse(val),
-                      controller: TextEditingController(
-                          text: _orderLines[index].unitPrice?.toString() ?? ''),
+                    child: BlocBuilder<PricelistCubit, ProductsState>(
+                      builder: (context, state) {
+                        if (state is ProductPriceLoadedState) {
+                          _orderLines[index].unitPrice = state.price;
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildTextField(
+                                label: AppLocalizations.of(context).unit_price,
+                                keyboardType: TextInputType.number,
+                                onChanged: (val) => _orderLines[index]
+                                    .unitPrice = double.tryParse(val),
+                                controller: TextEditingController(
+                                    text: _orderLines[index]
+                                            .unitPrice
+                                            ?.toString() ??
+                                        ''),
+                                enabled: false,
+                              ),
+                              SizedBox(
+                                height: 4,
+                              ),
+                              Text(
+                                "",
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green),
+                              ),
+                            ],
+                          );
+                        } else if (state is ProductsErrorState) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildTextField(
+                                label: AppLocalizations.of(context).unit_price,
+                                keyboardType: TextInputType.number,
+                                onChanged: (val) => _orderLines[index]
+                                    .unitPrice = double.tryParse(val),
+                                controller: TextEditingController(
+                                    text: _orderLines[index]
+                                            .unitPrice
+                                            ?.toString() ??
+                                        ''),
+                                enabled: false,
+                              ),
+                              SizedBox(
+                                height: 4,
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Text("Error loading price",
+                                    style: TextStyle(color: Colors.red)),
+                              ),
+                            ],
+                          );
+                        } else {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildTextField(
+                                label: AppLocalizations.of(context).unit_price,
+                                keyboardType: TextInputType.number,
+                                onChanged: (val) => _orderLines[index]
+                                    .unitPrice = double.tryParse(val),
+                                controller: TextEditingController(
+                                    text: _orderLines[index]
+                                            .unitPrice
+                                            ?.toString() ??
+                                        ''),
+                                enabled: false,
+                              ),
+                              SizedBox(
+                                height: 4,
+                              ),
+                              Text("Fetching price..."),
+                            ],
+                          );
+                        }
+                      },
                     ),
                   ),
                 ],
@@ -326,8 +518,7 @@ class _QuotationScreenState extends State<QuotationScreen> {
                         _orderLines[index].taxAmount = selectedTax['amount'];
                         _orderLines[index].taxId =
                             selectedTax['id']; // Store tax ID
-                        _orderLines[index].paymentTermId =
-                            selectedTax['id']; // Store tax ID
+                        // Store tax ID
                       }),
                       items: state.taxes
                           .map((tax) => tax['name'] as String)
@@ -370,27 +561,30 @@ class _QuotationScreenState extends State<QuotationScreen> {
   }
 
   Widget _buildTotalPriceSection() {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '${AppLocalizations.of(context).total_price} \$${_calculateTotalPrice().toStringAsFixed(2)}',
-              style: const TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '${AppLocalizations.of(context).total_price_with_tax} \$${_calculateTotalPriceWithTaxes().toStringAsFixed(2)}',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF00A09D), // Odoo teal
+    return Container(
+      width: double.infinity,
+      child: Card(
+        elevation: 2,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${AppLocalizations.of(context).total_price} \$${_calculateTotalPrice().toStringAsFixed(2)}',
+                style: const TextStyle(fontSize: 16),
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Text(
+                '${AppLocalizations.of(context).total_price_with_tax} \$${_calculateTotalPriceWithTaxes().toStringAsFixed(2)}',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF00A09D), // Odoo teal
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -420,51 +614,17 @@ class _QuotationScreenState extends State<QuotationScreen> {
                   if (customerId == null || paymentTermId == null) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                          content: Text(
-                              "${AppLocalizations.of(context).Please_select_a_customer_and_payment_term}")),
+                        content: Text(
+                            "${AppLocalizations.of(context).Please_select_a_customer_and_payment_term}"),
+                      ),
                     );
                     return;
                   }
 
-                  final action = await showDialog<String>(
-                    context: context,
-                    builder: (context) {
-                      return AlertDialog(
-                        title: Text(
-                            "${AppLocalizations.of(context).choose_action}"),
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            ListTile(
-                              title: Text(
-                                  "${AppLocalizations.of(context).create_confirm_sales_order}"),
-                              onTap: () =>
-                                  Navigator.pop(context, "sales_order"),
-                            ),
-                            ListTile(
-                              title: Text(
-                                  "${AppLocalizations.of(context).create_confirm_delivery_order}"),
-                              onTap: () =>
-                                  Navigator.pop(context, "delivery_order"),
-                            ),
-                            ListTile(
-                              title: Text(
-                                  "${AppLocalizations.of(context).create_inventory_receipt}"),
-                              onTap: () =>
-                                  Navigator.pop(context, "inventory_receipt"),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  );
-
-                  if (action == null) return;
-
                   try {
                     final orderData = {
                       "partner_id": int.tryParse(customerId.toString()) ?? 0,
-                      "payment_term_id": int.tryParse(paymentTermId.toString()),
+                      "payment_term_id": 1,
                       "order_line": _orderLines.map((line) {
                         if (line.productId == null ||
                             line.quantity == null ||
@@ -484,37 +644,14 @@ class _QuotationScreenState extends State<QuotationScreen> {
                       }).toList(),
                     };
 
-                    final pickingData = {
-                      "partner_id": int.tryParse(customerId.toString()) ?? 0,
-                      "picking_type_id": 1, // Change to correct picking type
-                      "location_id": 5, // Warehouse ID
-                      "location_dest_id": 8, // Customer location
-                      "move_ids_without_package": _orderLines.map((line) {
-                        if (line.productId == null || line.quantity == null) {
-                          throw Exception("Invalid order line data");
-                        }
-                        return [
-                          0,
-                          0,
-                          {
-                            "product_id": line.productId,
-                            "product_uom_qty": line.quantity,
-                            "product_uom": line.unitId,
-                            "location_id": 5,
-                            "location_dest_id": 8,
-                          }
-                        ];
-                      }).toList(),
-                    };
-
                     final cubit = SaleOrderCubit.get(context);
-
-                    if (action == "sales_order") {
-                      cubit.createAndConfirmSaleOrder(orderData);
-                    } else if (action == "delivery_order") {
-                    } else if (action == "inventory_receipt") {
-                      cubit.createInventoryReceipt(orderData);
-                    }
+                    cubit.createAndConfirmSaleOrder(orderData);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) =>
+                              const MyHomePage(title: "home")),
+                    );
                   } catch (e) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text("Error: ${e.toString()}")),
@@ -555,7 +692,7 @@ class _QuotationScreenState extends State<QuotationScreen> {
           value: validValue, // Use the validated value
           decoration: InputDecoration(
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(12),
             ),
           ),
           hint: Text('${AppLocalizations.of(context).select} $title'),
@@ -573,17 +710,19 @@ class _QuotationScreenState extends State<QuotationScreen> {
 
   Widget _buildTextField({
     required String label,
+    required bool enabled,
     TextInputType keyboardType = TextInputType.text,
     ValueChanged<String>? onChanged,
     TextEditingController? controller,
   }) {
     return TextField(
+      enabled: enabled,
       controller: controller,
       keyboardType: keyboardType,
       decoration: InputDecoration(
         labelText: label,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
         ),
       ),
       onChanged: onChanged,
@@ -594,6 +733,7 @@ class _QuotationScreenState extends State<QuotationScreen> {
 class OrderLine {
   String? selectedProduct;
   int? productId; // Added to store product ID
+  int? PriceProductId; // Added to store product ID
   double? StocQuantitiy; // Added to store product ID
   double? quantity;
   int? unitId;

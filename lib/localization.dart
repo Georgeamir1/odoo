@@ -44,6 +44,7 @@ class AppLocalizations {
       "order": "Order",
       "delivery_order": "Delivery Order",
       "inventory_receipts": "Inventory Receipts",
+      "inventory_receipts_details": "Inventory Receipts Details",
       "logout": "Logout",
       'customer': 'Customer',
       'payment_terms': 'Payment Terms',
@@ -128,6 +129,7 @@ class AppLocalizations {
       "order": "الطلبات",
       "delivery_order": "أمر التوصيل",
       "inventory_receipts": "إيصالات المخزون",
+      "inventory_receipts_details": "تفاصيل إيصالات المخزون",
       "logout": "تسجيل خروج",
       'customer': 'العميل',
       'payment_terms': 'شروط الدفع',
@@ -237,6 +239,8 @@ class AppLocalizations {
   String get order => _translate('order');
   String get deliveryOrder => _translate('delivery_order');
   String get inventoryReceipts => _translate('inventory_receipts');
+  String get inventory_receipts_details =>
+      _translate('inventory_receipts_details');
   String get logout => _translate('logout');
   String get customer => _translate('customer');
   String get payment_terms => _translate('payment_terms');

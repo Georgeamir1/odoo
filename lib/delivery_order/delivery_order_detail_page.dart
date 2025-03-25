@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
 import 'package:odoo/delivery_order/delivery_order_ui.dart';
 import 'package:odoo_rpc/odoo_rpc.dart';
+import '../InventoryReceipts/widgets.dart';
 import '../delivery_order/delivery_order_cubit.dart';
 import '../delivery_order/delivery_order_status.dart';
 import '../networking/odoo_service.dart';
@@ -163,7 +165,23 @@ class _OrderHeaderCard extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                       color: const Color(0xFF714B67)),
                 ),
-                _buildStatusChip("${detail['state']?.toString() ?? ''}"),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: getStatusColor(detail['state']).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    getStatusname(
+                        context, detail['state']), // Pass context here
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: getStatusColor(detail['state']),
+                    ),
+                  ),
+                ),
               ],
             ),
             const Divider(height: 24),
@@ -242,13 +260,15 @@ class _OrderHeaderCard extends StatelessWidget {
   _StatusConfig _getStatusConfig(String status) {
     switch (status.toLowerCase()) {
       case 'draft':
-        return _StatusConfig(Colors.blue, Icons.edit);
+        return _StatusConfig(Colors.grey, Icons.edit);
       case 'assigned':
-        return _StatusConfig(Colors.orange, Icons.assignment_turned_in);
+        return _StatusConfig(Colors.blue, Icons.assignment_turned_in);
       case 'done':
         return _StatusConfig(Colors.green, Icons.check_circle);
       case 'cancel':
         return _StatusConfig(Colors.red, Icons.cancel);
+      case 'confirmed':
+        return _StatusConfig(Colors.orange, Icons.cancel);
       default:
         return _StatusConfig(Colors.grey, Icons.help_outline);
     }
