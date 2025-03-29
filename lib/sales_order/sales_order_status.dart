@@ -13,10 +13,10 @@ class PartnersLoadedState extends PartnersState {
   final List<dynamic> partners;
 
   PartnersLoadedState(
-      this.partners, {
-        this.selectedCustomer,
-        this.selectedCustomerId,
-      });
+    this.partners, {
+    this.selectedCustomer,
+    this.selectedCustomerId,
+  });
 }
 
 //_______________________________________________________________________
@@ -31,22 +31,27 @@ class ProductsErrorState extends ProductsState {
 
 class ProductsLoadedState extends ProductsState {
   final List<dynamic> Products;
-  final String? selectedProducts;  // Add selectedCustomer here
+  final String? selectedProducts; // Add selectedCustomer here
 
   ProductsLoadedState(this.Products, {this.selectedProducts});
 }
 
-
 //_______________________________________________________________________
-class TaxesState {}  // Create a new state class for taxes
-class TaxesLoadingState extends TaxesState {}  // Create a new loading state for taxes
-class TaxesErrorState extends TaxesState {  // Create a new error state for taxes
+class TaxesState {} // Create a new state class for taxes
+
+class TaxesLoadingState
+    extends TaxesState {} // Create a new loading state for taxes
+
+class TaxesErrorState extends TaxesState {
+  // Create a new error state for taxes
   final String error;
   TaxesErrorState(this.error);
 }
-class TaxesLoadedState extends TaxesState {  // Create a new loaded state for taxes
+
+class TaxesLoadedState extends TaxesState {
+  // Create a new loaded state for taxes
   final List<dynamic> taxes;
-  final String? selectedTaxes;  // Add selectedTaxes here
+  final String? selectedTaxes; // Add selectedTaxes here
 
   TaxesLoadedState(this.taxes, {this.selectedTaxes});
 }
@@ -76,17 +81,21 @@ class SalesOrderStatusUpdated extends SalesOrderState {
 //_______________________________________________________________________
 
 class PaymentTermState {}
+
 class PaymentTermLoadingState extends PaymentTermState {}
+
 class PaymentTermErrorState extends PaymentTermState {
   final String error;
   PaymentTermErrorState(this.error);
 }
+
 class PaymentTermLoadedState extends PaymentTermState {
   final List<dynamic> paymentTerm;
   final String? selectedPaymentTerm;
   final String? selectedPaymentTermId;
 
-  PaymentTermLoadedState(this.paymentTerm, {this.selectedPaymentTerm,this.selectedPaymentTermId});
+  PaymentTermLoadedState(this.paymentTerm,
+      {this.selectedPaymentTerm, this.selectedPaymentTermId});
 }
 //_______________________________________________________________________
 
@@ -97,6 +106,14 @@ class SaleOrderInitial extends SaleOrderState {}
 
 /// Indicates that the sale order creation is in progress.
 class SaleOrderLoading extends SaleOrderState {}
+
+class SaleOrderLoaded extends SaleOrderState {
+  final List<Map<String, dynamic>> orders;
+  final bool hasReachedMax;
+  SaleOrderLoaded(this.orders, {this.hasReachedMax = false});
+  @override
+  List<Object> get props => [orders, hasReachedMax];
+}
 
 /// Indicates that the sale order was created successfully.
 class SaleOrderSuccess extends SaleOrderState {
@@ -109,4 +126,4 @@ class SaleOrderError extends SaleOrderState {
   final String message;
   SaleOrderError(this.message);
 }
-
+//_______________________________________________________________________

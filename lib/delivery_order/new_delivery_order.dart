@@ -254,7 +254,7 @@ class _newdeliveryorderState extends State<newdeliveryorderScreen> {
                                 'product_variant_ids']; // Store product ID
                             _orderLines[index].productId =
                                 selectedProduct['product_variant_ids']
-                                    [0]; // Available quantity
+                                    [0];// Available quantity
                             _orderLines[index].unitId = selectedProduct[
                                     'uom_id'] ??
                                 1; // Store UoM ID (defaults to 1 if missing)

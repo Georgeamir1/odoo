@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:odoo/sales_order/sales_order_cubit.dart';
+import 'package:odoo/sales_order/sales_order_list.dart';
 import 'package:odoo/sales_order/sales_order_status.dart';
-import 'package:shimmer/main.dart';
 
 import '../localization.dart';
 
@@ -611,7 +611,7 @@ class _QuotationScreenState extends State<QuotationScreen> {
             builder: (context, state) {
               return ElevatedButton(
                 onPressed: () async {
-                  if (customerId == null || paymentTermId == null) {
+                  if (customerId == null) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
@@ -649,8 +649,7 @@ class _QuotationScreenState extends State<QuotationScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) =>
-                              const MyHomePage(title: "home")),
+                          builder: (context) => const SaleOrderPage()),
                     );
                   } catch (e) {
                     ScaffoldMessenger.of(context).showSnackBar(

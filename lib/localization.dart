@@ -13,6 +13,10 @@ class AppLocalizations {
   static final Map<String, Map<String, String>> _localizedValues = {
     'en': {
       'username': 'Username',
+      'upselling_opportunity': 'Upselling Opportunity',
+      'fully_invoiced': 'Fully Invoiced',
+      'to_invoice': 'To Invoice',
+      'nothing_to_invoice': 'Nothing To Invoice',
       'delivery_order_details': 'Delivery Order Details',
       'loading_order_details': 'Loading order details...',
       'error_loading_order': 'Error loading order:',
@@ -98,6 +102,10 @@ class AppLocalizations {
       'order_created': 'Order created',
     },
     'ar': {
+      'upselling_opportunity': 'فرصه الارتقاء بالصفقه',
+      'fully_invoiced': 'مفوتره بالكامل',
+      'to_invoice': 'بانتظار الفوتره',
+      'nothing_to_invoice': 'لا توجد مبالغ افوترتها',
       'delivery_order_details': 'تفاصيل أمر التوصيل',
       'loading_order_details': 'جاري تحميل تفاصيل الطلب...',
       'error_loading_order': 'خطأ في تحميل الطلب:',
@@ -137,7 +145,6 @@ class AppLocalizations {
       'add_line': 'إضافة منتج',
       'product': 'المنتج',
       'available_quantity': 'الكمية المتاحة',
-      'quantity': 'الكمية',
       'unit_price': 'سعر الوحدة',
       'taxes': 'الضرائب',
       'tax': 'الضريبة',
@@ -193,6 +200,10 @@ class AppLocalizations {
 
   // Getters for translations
   String get username => _translate('username');
+  String get upselling_opportunity => _translate('upselling_opportunity');
+  String get fully_invoiced => _translate('fully_invoiced');
+  String get to_invoice => _translate('to_invoice');
+  String get nothing_to_invoice => _translate('nothing_to_invoice');
   String get deliveryOrderDetails => _translate('delivery_order_details');
   String get loadingOrderDetails => _translate('loading_order_details');
   String get errorLoadingOrder => _translate('error_loading_order');

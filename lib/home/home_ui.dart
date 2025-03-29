@@ -4,6 +4,7 @@ import '../delivery_order/delivery_order_ui.dart';
 import '../localization.dart';
 import '../login/login_ui.dart';
 import '../networking/odoo_service.dart';
+import '../sales_order/sales_order_list.dart';
 import '../sales_order/sales_order_ui.dart';
 
 class HomePage extends StatelessWidget {
@@ -126,7 +127,7 @@ class HomePage extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => const QuotationScreen()),
+                          builder: (context) => const SaleOrderPage()),
                     );
                   },
                 ),

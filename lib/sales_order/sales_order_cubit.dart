@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'dart:convert';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:odoo/sales_order/sales_order_status.dart';
@@ -131,7 +133,6 @@ class PricelistCubit extends Cubit<ProductsState> {
   }
 }
 
-// الحالة الجديدة لحفظ السعر
 class ProductPriceLoadedState extends ProductsState {
   final double price;
   ProductPriceLoadedState(this.price);
@@ -214,22 +215,91 @@ class PaymentTermCubit extends Cubit<PaymentTermState> {
 }
 
 class SaleOrderCubit extends Cubit<SaleOrderState> {
-  // Convenience getter to retrieve the cubit instance from the context.
   static SaleOrderCubit get(BuildContext context) =>
       BlocProvider.of<SaleOrderCubit>(context);
-
   final odooService = OdooRpcService();
+
+  List<Map<String, dynamic>> allOrders = [];
+  List<Map<String, dynamic>> filteredOrders = [];
+  int currentDisplayLength = 5;
 
   SaleOrderCubit() : super(SaleOrderInitial());
 
-  Future<void> createAndConfirmSaleOrder(Map<String, dynamic> orderData) async {
-    emit(SaleOrderLoading());
+  Future<void> fetchSaleOrder() async {
     try {
-      // Create the sale order.
+      emit(SaleOrderLoading());
+
+      final orders = await odooService.fetchRecords(
+        'sale.order',
+        [],
+        [
+          'invoice_status',
+          'amount_total',
+          'partner_id',
+          'create_date',
+          'name',
+        ],
+      );
+
+      allOrders = List<Map<String, dynamic>>.from(orders);
+      filteredOrders = allOrders;
+      currentDisplayLength = 5;
+
+      emit(SaleOrderLoaded(
+        filteredOrders.take(currentDisplayLength).toList(),
+        hasReachedMax: currentDisplayLength >= filteredOrders.length,
+      ));
+    } catch (e) {
+      emit(SaleOrderError("Failed to fetch delivery orders: ${e.toString()}"));
+    }
+  }
+
+  void loadMore() {
+    if (state is SaleOrderLoaded && !(state as SaleOrderLoaded).hasReachedMax) {
+      final newLength = currentDisplayLength + 5;
+      final hasReachedMax = newLength >= filteredOrders.length;
+
+      emit(SaleOrderLoaded(
+        filteredOrders.take(newLength).toList(),
+        hasReachedMax: hasReachedMax,
+      ));
+      currentDisplayLength = newLength;
+    }
+  }
+
+  void filterOrders(String query) {
+    try {
+      if (query.toLowerCase() == 'all') {
+        filteredOrders = allOrders;
+      } else {
+        final queryLower = query.toLowerCase();
+        filteredOrders = allOrders.where((order) {
+          return (order['invoice_status']?.toString().toLowerCase() ?? '')
+                  .contains(queryLower) ||
+              (order['name']?.toString().toLowerCase() ?? '')
+                  .contains(queryLower) ||
+              (order['origin']?.toString().toLowerCase() ?? '')
+                  .contains(queryLower);
+        }).toList();
+      }
+
+      currentDisplayLength = 5;
+      emit(SaleOrderLoaded(
+        filteredOrders.take(currentDisplayLength).toList(),
+        hasReachedMax: currentDisplayLength >= filteredOrders.length,
+      ));
+    } catch (e) {
+      emit(SaleOrderError("Error filtering orders: ${e.toString()}"));
+    }
+  }
+
+  Future<void> createAndConfirmSaleOrder(Map<String, dynamic> orderData) async {
+    try {
+      emit(SaleOrderLoading());
       final saleOrderId =
           await odooService.createRecord("sale.order", orderData);
+
       if (saleOrderId != null) {
-        // Confirm the sale order by calling action_confirm.
         await odooService.client.callKw({
           'model': 'sale.order',
           'method': 'action_confirm',
@@ -238,14 +308,38 @@ class SaleOrderCubit extends Cubit<SaleOrderState> {
           ],
           'kwargs': {}
         });
-        print("Sale Order Created and Confirmed: $saleOrderId");
         emit(SaleOrderSuccess(saleOrderId));
+        await fetchSaleOrder(); // Refresh the list
       } else {
-        emit(SaleOrderError("Failed to create sale order."));
+        emit(SaleOrderError("Failed to create sale order"));
       }
     } catch (e) {
-      print(e);
-      emit(SaleOrderError(e.toString()));
+      emit(SaleOrderError("Order creation failed: ${e.toString()}"));
+    }
+  }
+
+  Future<void> createInventoryReceipt(Map<String, dynamic> pickingData) async {
+    try {
+      emit(SaleOrderLoading());
+      final receiptId =
+          await odooService.createRecord("stock.picking", pickingData);
+
+      if (receiptId != null) {
+        await odooService.client.callKw({
+          'model': 'stock.picking',
+          'method': 'button_validate',
+          'args': [
+            [receiptId]
+          ],
+          'kwargs': {}
+        });
+        emit(SaleOrderSuccess(receiptId));
+        await fetchSaleOrder(); // Refresh the list
+      } else {
+        emit(SaleOrderError("Failed to create inventory receipt"));
+      }
+    } catch (e) {
+      emit(SaleOrderError("Receipt creation failed: ${e.toString()}"));
     }
   }
 
@@ -257,18 +351,18 @@ class SaleOrderCubit extends Cubit<SaleOrderState> {
     required List<OrderLine> orderLines,
   }) async {
     try {
-      final moveIdsWithoutPackage = orderLines.map((line) {
+      emit(SaleOrderLoading());
+      final moveIds = orderLines.map((line) {
         if (line.productId == null ||
             line.quantity == null ||
             line.unitId == null) {
-          throw Exception(
-              "🚨 Invalid order line data: ${jsonEncode(line.toJson())}");
+          throw Exception("Invalid order line data");
         }
         return [
           0,
           0,
           {
-            "name": line.selectedProduct ?? "Unnamed Product",
+            "name": line.selectedProduct ?? "Product",
             "product_id": line.productId,
             "product_uom_qty": line.quantity,
             "product_uom": line.unitId,
@@ -278,28 +372,22 @@ class SaleOrderCubit extends Cubit<SaleOrderState> {
         ];
       }).toList();
 
-      final pickingData = {
-        "partner_id": partnerId,
-        "picking_type_id": pickingTypeId,
-        "location_id": locationId,
-        "location_dest_id": locationDestId,
-        "move_ids_without_package": moveIdsWithoutPackage,
-      };
-
-      print("📦 Sending Picking Data: ${jsonEncode(pickingData)}");
-
-      // Step 1: Create Stock Picking
       final pickingId = await odooService.client.callKw({
         'model': 'stock.picking',
         'method': 'create',
-        'args': [pickingData],
+        'args': [
+          {
+            "partner_id": partnerId,
+            "picking_type_id": pickingTypeId,
+            "location_id": locationId,
+            "location_dest_id": locationDestId,
+            "move_ids_without_package": moveIds,
+          }
+        ],
         'kwargs': {},
       });
 
-      print("✅ Stock Picking Created Successfully: ID = $pickingId");
-
-      // Step 2: Confirm Stock Picking
-      final confirmResponse = await odooService.client.callKw({
+      await odooService.client.callKw({
         'model': 'stock.picking',
         'method': 'action_confirm',
         'args': [
@@ -308,37 +396,10 @@ class SaleOrderCubit extends Cubit<SaleOrderState> {
         'kwargs': {},
       });
 
-      print("✅ Stock Picking Confirmed: $confirmResponse");
+      emit(SaleOrderSuccess(pickingId));
+      await fetchSaleOrder(); // Refresh the list
     } catch (e) {
-      print("❌ Error creating or confirming stock picking: ${e.toString()}");
-      if (e is OdooException) {
-        print("OdooException Details: ${e.message}");
-      }
-    }
-  }
-
-  Future<void> createInventoryReceipt(Map<String, dynamic> pickingData) async {
-    emit(SaleOrderLoading());
-    try {
-      final receiptId =
-          await odooService.createRecord("stock.picking", pickingData);
-      if (receiptId != null) {
-        await odooService.client.callKw({
-          'model': 'stock.picking',
-          'method': 'button_validate', // Confirms the inventory receipt
-          'args': [
-            [receiptId]
-          ],
-          'kwargs': {}
-        });
-        print("Inventory Receipt Created & Confirmed: $receiptId");
-        emit(SaleOrderSuccess(receiptId));
-      } else {
-        emit(SaleOrderError("Failed to create Inventory Receipt."));
-      }
-    } catch (e) {
-      print(e);
-      emit(SaleOrderError(e.toString()));
+      emit(SaleOrderError("Picking creation failed: ${e.toString()}"));
     }
   }
 }
