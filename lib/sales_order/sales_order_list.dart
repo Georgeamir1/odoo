@@ -45,7 +45,7 @@ class SaleOrderPage extends StatelessWidget {
                   backgroundColor: Colors.transparent,
                   iconTheme: IconThemeData(color: Colors.white),
                   title: Text(
-                    AppLocalizations.of(context).inventoryReceipts,
+                    AppLocalizations.of(context).order,
                     style: TextStyle(color: Colors.white, fontSize: 20),
                   ),
                   actions: [
@@ -113,6 +113,15 @@ class SaleOrderPage extends StatelessWidget {
                                   ),
                                   backgroundColor: Color(0xFF714B67),
                                 ),
+                                /*  FloatingActionButton.extended(
+                                  onPressed: () =>
+                                      context.read<SaleOrderCubit>().loadMore(),
+                                  label: Text(
+                                    AppLocalizations.of(context).load_more,
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                  backgroundColor: Color(0xFF714B67),
+                                ),*/
                               ],
                             ),
                           ),

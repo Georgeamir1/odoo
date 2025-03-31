@@ -56,6 +56,9 @@ dependencies:
   lingo_hunter: ^1.0.3
   expandable_text: ^2.3.0
   infinite_scroll: ^1.1.1
+  flutter_blue_plus: ^1.35.3
+  permission_handler: ^11.4.0
+  device_info_plus: ^11.3.3
 
 dev_dependencies:
   flutter_test:

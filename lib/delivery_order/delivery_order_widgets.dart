@@ -9,8 +9,19 @@ import '../localization.dart';
 import 'delivery_order_cubit.dart';
 import 'delivery_order_detail_page.dart';
 
-Widget buildOrderList(BuildContext context, List<dynamic> orders) {
+Widget buildOrderList(
+    BuildContext context, List<dynamic> orders, Function loadMore) {
+  final ScrollController _scrollController = ScrollController();
+
+  _scrollController.addListener(() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent) {
+      loadMore();
+    }
+  });
+
   return ListView.builder(
+    controller: _scrollController,
     itemCount: orders.length,
     itemBuilder: (context, index) {
       final order = orders[index];

@@ -258,7 +258,7 @@ class SaleOrderCubit extends Cubit<SaleOrderState> {
     if (state is SaleOrderLoaded && !(state as SaleOrderLoaded).hasReachedMax) {
       final newLength = currentDisplayLength + 5;
       final hasReachedMax = newLength >= filteredOrders.length;
-
+      print(1);
       emit(SaleOrderLoaded(
         filteredOrders.take(newLength).toList(),
         hasReachedMax: hasReachedMax,

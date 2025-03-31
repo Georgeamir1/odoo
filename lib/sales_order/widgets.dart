@@ -35,7 +35,9 @@ Widget buildOrderCard(BuildContext context, dynamic order) {
     ),
     margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
     child: InkWell(
+/*
       onTap: () => showDetails(context, order),
+*/
       borderRadius: BorderRadius.circular(12),
       child: Padding(
         padding: const EdgeInsets.all(16),

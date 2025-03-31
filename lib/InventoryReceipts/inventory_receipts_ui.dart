@@ -85,7 +85,12 @@ class InventoryReceiptsPage extends StatelessWidget {
                           .bottomRight, // Positions the FAB in the bottom right.
                       children: [
                         // Your list widget should expand as needed.
-                        buildOrderList(context, state.orders),
+                        buildOrderList(
+                          context,
+                          state.orders,
+                          () =>
+                              context.read<InventoryReceiptsCubit>().loadMore(),
+                        ),
                         if (state.orders.length <
                             context
                                 .read<InventoryReceiptsCubit>()
@@ -112,7 +117,7 @@ class InventoryReceiptsPage extends StatelessWidget {
                                   ),
                                   backgroundColor: Color(0xFF714B67),
                                 ),
-                                FloatingActionButton.extended(
+                                /*           FloatingActionButton.extended(
                                   onPressed: () => context
                                       .read<InventoryReceiptsCubit>()
                                       .loadMore(),
@@ -121,7 +126,7 @@ class InventoryReceiptsPage extends StatelessWidget {
                                     style: TextStyle(color: Colors.white),
                                   ),
                                   backgroundColor: Color(0xFF714B67),
-                                ),
+                                ),*/
                               ],
                             ),
                           ),

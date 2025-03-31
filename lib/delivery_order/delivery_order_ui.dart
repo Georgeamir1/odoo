@@ -77,7 +77,11 @@ class DeliveryOrderPage extends StatelessWidget {
                     return Stack(
                       alignment: Alignment.bottomRight,
                       children: [
-                        buildOrderList(context, state.orders),
+                        buildOrderList(
+                          context,
+                          state.orders,
+                          () => context.read<DeliveryOrderCubit>().loadMore(),
+                        ),
                         if (state.orders.length <
                             context.read<DeliveryOrderCubit>().allOrders.length)
                           Padding(
@@ -101,7 +105,7 @@ class DeliveryOrderPage extends StatelessWidget {
                                   tooltip: "Load more orders",
                                   backgroundColor: Color(0xFF714B67),
                                 ),
-                                FloatingActionButton.extended(
+                                /*     FloatingActionButton.extended(
                                   onPressed: () => context
                                       .read<DeliveryOrderCubit>()
                                       .loadMore(),
@@ -110,7 +114,7 @@ class DeliveryOrderPage extends StatelessWidget {
                                       style: TextStyle(color: Colors.white)),
                                   tooltip: "Load more orders",
                                   backgroundColor: Color(0xFF714B67),
-                                ),
+                                ),*/
                               ],
                             ),
                           ),
