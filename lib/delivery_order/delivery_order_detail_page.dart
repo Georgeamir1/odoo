@@ -4,10 +4,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
 import 'package:odoo/delivery_order/delivery_order_ui.dart';
 import 'package:odoo_rpc/odoo_rpc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../InventoryReceipts/widgets.dart';
 import '../delivery_order/delivery_order_cubit.dart';
 import '../delivery_order/delivery_order_status.dart';
 import '../networking/odoo_service.dart';
+import '../testttt.dart';
 import '../localization.dart'; // Import localization
 
 class DeliveryOrderDetailPage extends StatelessWidget {
@@ -46,6 +48,7 @@ class DeliveryOrderDetailPage extends StatelessWidget {
               ],
             ),
           ),
+          actions: [],
         ),
         body: BlocListener<DeliveryOrderDetailCubit, DeliveryOrderDetailState>(
           listener: (context, state) {
@@ -325,31 +328,55 @@ class _ProductListItem extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.blue.shade50,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: const Icon(Icons.inventory_2, color: Color(0xFF714B67)),
-        ),
-        title: Text(productName),
-        subtitle: Text('${AppLocalizations.of(context).unit}: $uom'),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
           children: [
-            Text(
-              '${AppLocalizations.of(context).demand}: $demandedQty',
-              style: const TextStyle(fontSize: 14),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.inventory_2, color: Color(0xFF714B67)),
             ),
-            Text(
-              '${AppLocalizations.of(context).quantity}: $quantity',
-              style: TextStyle(
-                fontSize: 14,
-                color: quantity >= demandedQty ? Colors.green : Colors.orange,
-                fontWeight: FontWeight.bold,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    productName,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${AppLocalizations.of(context).unit}: $uom',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.grey.shade600,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Text(
+                        '${AppLocalizations.of(context).demand}: $demandedQty',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Colors.grey.shade800,
+                            ),
+                      ),
+                      const SizedBox(width: 16),
+                      Text(
+                        '${AppLocalizations.of(context).quantity}: $quantity',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Colors.grey.shade800,
+                            ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ],

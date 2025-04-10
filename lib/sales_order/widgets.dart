@@ -4,6 +4,7 @@ import 'package:flutter_feather_icons/flutter_feather_icons.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:odoo/InventoryReceipts/inventory_receipts_details.dart';
 import 'package:odoo/sales_order/sales_order_cubit.dart';
+import 'package:odoo/sales_order/sales_order_details.dart';
 import '../localization.dart';
 
 Widget buildOrderList(
@@ -35,9 +36,7 @@ Widget buildOrderCard(BuildContext context, dynamic order) {
     ),
     margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
     child: InkWell(
-/*
       onTap: () => showDetails(context, order),
-*/
       borderRadius: BorderRadius.circular(12),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -211,10 +210,11 @@ Widget buildStatusIndicator(String state) {
 }
 
 void showDetails(BuildContext context, dynamic order) {
+  print("Order ID: ${order['id']}"); // Debug log
   Navigator.push(
     context,
     MaterialPageRoute(
-      builder: (context) => InventoryReceiptsDetailPage(
+      builder: (context) => SaleOrderdetailsPage(
         pickingId: order['id'],
       ),
     ),

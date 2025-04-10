@@ -1,12 +1,6 @@
-import 'dart:convert';
-
-import 'dart:convert';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:odoo/sales_order/sales_order_status.dart';
-import 'package:odoo_rpc/odoo_rpc.dart';
-
 import '../InventoryReceipts/new_inventory_receipt.dart';
 import '../networking/odoo_service.dart';
 
@@ -72,7 +66,8 @@ class ProductsCubit extends Cubit<ProductsState> {
         "id",
         "list_price",
         "qty_available",
-        "product_variant_ids"
+        "product_variant_ids",
+        "taxes_id",
       ]);
       emit(ProductsLoadedState(Products)); // Emit success state with Products
     } catch (e) {
@@ -143,7 +138,6 @@ class TaxesCubit extends Cubit<TaxesState> {
 
   TaxesCubit() : super(TaxesLoadingState());
   static TaxesCubit get(context) => BlocProvider.of(context);
-
   void getTaxes() async {
     emit(TaxesLoadingState()); // Emit loading state before starting the request
     try {
@@ -166,6 +160,29 @@ class TaxesCubit extends Cubit<TaxesState> {
     if (state is TaxesLoadedState) {
       final currentState = state as TaxesLoadedState;
       emit(TaxesLoadedState(currentState.taxes, selectedTaxes: taxName));
+    }
+  }
+
+  void getTaxesamount(int? taxid) async {
+    emit(TaxesLoadingState());
+    try {
+      List<dynamic> result = await odooService.fetchRecords(
+        "account.tax",
+        [
+          ["id", "=", taxid],
+        ],
+        ["amount"],
+      );
+
+      if (result.isNotEmpty) {
+        double amount = result.first["amount"] ?? 0.0;
+
+        emit(TaxesamountLoadedState(amount));
+      } else {
+        emit(TaxesErrorState("No price found for this product"));
+      }
+    } catch (e) {
+      emit(TaxesErrorState(e.toString()));
     }
   }
 
@@ -238,6 +255,7 @@ class SaleOrderCubit extends Cubit<SaleOrderState> {
           'partner_id',
           'create_date',
           'name',
+          "id"
         ],
       );
 
@@ -400,6 +418,83 @@ class SaleOrderCubit extends Cubit<SaleOrderState> {
       await fetchSaleOrder(); // Refresh the list
     } catch (e) {
       emit(SaleOrderError("Picking creation failed: ${e.toString()}"));
+    }
+  }
+}
+
+class SaleOrderdetailsCubit extends Cubit<SaleOrderdetailsState> {
+  final OdooRpcService odooService;
+  static SaleOrderdetailsCubit get(context) => BlocProvider.of(context);
+
+  SaleOrderdetailsCubit(this.odooService) : super(SaleOrderdetailsLoading());
+  List<dynamic> allOrders = []; // Original unfiltered orders list
+
+  /// Fetches delivery orders from Odoo and enriches each order with move details.
+
+  Future<void> fetchDetail(int pickingId) async {
+    emit(SaleOrderdetailsLoading());
+    try {
+      // 1) Fetch picking record
+      final result = await odooService.fetchRecords(
+        'sale.order',
+        [
+          ['id', '=', pickingId]
+        ],
+        [
+          'name',
+          'amount_untaxed',
+          'partner_id',
+          'amount_tax',
+          'date_order',
+          'amount_total',
+          'amount_to_invoice',
+          'pricelist_id',
+          'payment_term_id',
+        ],
+      );
+
+      if (result.isEmpty) {
+        emit(SaleOrderdetailsError('No details found for this order.'));
+        return;
+      }
+
+      final picking = result.first;
+
+      // 2) Fetch move details
+      final moves = await odooService.fetchRecords(
+        'sale.order.line',
+        [
+          ['order_id', '=', pickingId]
+        ],
+        [
+          'name',
+          'product_uom_qty',
+          'price_total',
+          'qty_delivered',
+          'qty_invoiced',
+          'product_uom',
+          'price_unit',
+          'tax_id',
+          'price_tax',
+          'discount',
+          'price_subtotal',
+        ],
+      );
+      // 3) Create a combined map of picking + moves
+      final detail = {
+        'id': pickingId,
+        'name': picking['name'],
+        'amount_untaxed': picking['amount_untaxed'],
+        'partner_id': picking['partner_id'],
+        'date_order': picking['date_order'],
+        'pricelist_id': picking['pricelist_id'],
+        'payment_term_id': picking['payment_term_id'],
+        'moves': moves,
+      };
+
+      emit(SaleOrderdetailsLoaded(detail, picking));
+    } catch (e) {
+      emit(SaleOrderdetailsError('Failed to fetch delivery order details: $e'));
     }
   }
 }

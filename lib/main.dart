@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:odoo/login/login_ui.dart';
+import 'package:odoo/print_bluetooth_thermal.dart';
+import 'package:odoo/printer%20page.dart';
+import 'package:odoo/test.dart';
+import 'package:odoo/testttt.dart';
 import 'package:pretty_bloc_observer/pretty_bloc_observer.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'blth.dart';
+import 'bluetooth_print_page.dart';
 import 'localization.dart'; // Add this import
 
 void main() {
@@ -37,7 +43,9 @@ class MyApp extends StatelessWidget {
                 colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
                 useMaterial3: true,
               ),
-              home: const LoginPage(title: 'Flutter Demo'),
+              home: LoginPage(
+                title: 'Beta',
+              ),
               builder: (context, child) {
                 return Listener(
                   behavior: HitTestBehavior.opaque,

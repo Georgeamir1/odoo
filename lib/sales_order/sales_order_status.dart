@@ -42,6 +42,10 @@ class TaxesState {} // Create a new state class for taxes
 class TaxesLoadingState
     extends TaxesState {} // Create a new loading state for taxes
 
+class TaxesamountLoadedState extends TaxesState {
+  TaxesamountLoadedState(double amount);
+} // Create a new loading state for taxes
+
 class TaxesErrorState extends TaxesState {
   // Create a new error state for taxes
   final String error;
@@ -126,4 +130,44 @@ class SaleOrderError extends SaleOrderState {
   final String message;
   SaleOrderError(this.message);
 }
+
 //_______________________________________________________________________
+abstract class SaleOrderdetailsState {}
+
+class SaleOrderdetailsLoading extends SaleOrderdetailsState {}
+
+class SaleOrderdetailsLoaded extends SaleOrderdetailsState {
+  final Map<String, dynamic> detail;
+  final Map<String, dynamic> picking;
+  SaleOrderdetailsLoaded(this.detail, this.picking);
+}
+
+class SaleOrderdetailsError extends SaleOrderdetailsState {
+  final String message;
+  SaleOrderdetailsError(this.message);
+}
+
+class SaleOrderdetailsvalidationError extends SaleOrderdetailsState {
+  final String message;
+  SaleOrderdetailsvalidationError(this.message);
+}
+
+class SaleOrderdetailsvalidationSuccess extends SaleOrderdetailsState {}
+
+class NavigateToSaleOrderdetailsPage extends SaleOrderdetailsState {}
+
+class SaleOrderdetailsvalidationLoadin extends SaleOrderdetailsState {}
+
+class BackOrderValidationSuccess extends SaleOrderdetailsState {}
+
+class NoBackOrderValidationSuccess extends SaleOrderdetailsState {}
+
+class BackOrderValidationError extends SaleOrderdetailsState {
+  final String message;
+  BackOrderValidationError(this.message);
+}
+
+class NoBackOrderValidationError extends SaleOrderdetailsState {
+  final String message;
+  NoBackOrderValidationError(this.message);
+}

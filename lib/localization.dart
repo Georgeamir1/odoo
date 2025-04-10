@@ -13,6 +13,16 @@ class AppLocalizations {
   static final Map<String, Map<String, String>> _localizedValues = {
     'en': {
       'username': 'Username',
+      'no_tax_applied': 'No taxes applied',
+      'sales': 'Sales',
+      'subtotal': 'subtotal',
+      'total': 'total',
+      'discount': 'discount',
+      "delivered": "delivered",
+      'pricelist': 'pricelist',
+      'date': 'Date',
+      'invoiced': 'invoiced',
+      'price': 'price',
       'upselling_opportunity': 'Upselling Opportunity',
       'fully_invoiced': 'Fully Invoiced',
       'to_invoice': 'To Invoice',
@@ -87,6 +97,7 @@ class AppLocalizations {
       'reference': 'Reference',
       'scheduled': 'Scheduled',
       'items': 'Items',
+      'Delivered': 'Delivered',
       'draft': 'Draft',
       'ready': 'Ready',
       'done': 'Done',
@@ -103,6 +114,15 @@ class AppLocalizations {
     },
     'ar': {
       'upselling_opportunity': 'فرصه الارتقاء بالصفقه',
+      'no_tax_applied': 'لا يوجد ضرا]ب مضافه',
+      'sales': 'المندوب',
+      'subtotal': 'المجموع الفرعي',
+      'total': 'المجموع',
+      'discount': 'الخصم',
+      "delivered": "تم التسليم",
+      'Delivered': 'تم التوصيل',
+      'price': 'السعر',
+      'invoiced': 'مفوتر',
       'fully_invoiced': 'مفوتره بالكامل',
       'to_invoice': 'بانتظار الفوتره',
       'nothing_to_invoice': 'لا توجد مبالغ افوترتها',
@@ -111,6 +131,8 @@ class AppLocalizations {
       'error_loading_order': 'خطأ في تحميل الطلب:',
       'not_available': 'غير متاح',
       'scheduled_date': 'التاريخ المحدد',
+      'pricelist': 'قائمة الأسعار',
+      'date': 'التاريخ',
       'deadline': 'الموعد النهائي',
       'source_document': 'المستند المصدر',
       'operation_type': 'نوع العملية',
@@ -200,6 +222,16 @@ class AppLocalizations {
 
   // Getters for translations
   String get username => _translate('username');
+  String get no_tax_applied => _translate('no_tax_applied');
+  String get sales => _translate('sales');
+  String get total => _translate('total');
+  String get discount => _translate('discount');
+  String get subtotal => _translate('subtotal');
+  String get Delivered => _translate('Delivered');
+  String get price => _translate('price');
+  String get date => _translate('date');
+  String get pricelist => _translate('pricelist');
+  String get invoiced => _translate('invoiced');
   String get upselling_opportunity => _translate('upselling_opportunity');
   String get fully_invoiced => _translate('fully_invoiced');
   String get to_invoice => _translate('to_invoice');

@@ -133,15 +133,41 @@ class OdooRpcService {
       print('Updating record in Odoo:');
       print('Model: $model');
       print('ID: $id');
-      print('Values: $values');
+      print('$values');
 
       final response = await client.callKw({
         'model': model,
         'method': 'write',
         'args': [
           [id],
-          values,
+          values
         ],
+        'kwargs': {},
+      });
+
+      print('Update response: $response');
+      return response == true;
+    } catch (e) {
+      print('Error updating record: $e');
+      throw Exception('Error updating record: $e');
+    }
+  }
+
+  Future<bool> updatequantity(String model, int id, double quantity) async {
+    try {
+      print('Updating record in Odoo:');
+      print('Model: $model');
+      print('ID: $id');
+      print('$quantity');
+
+      final response = await client.callKw({
+        'model': model,
+        'method': 'write',
+        'args': [
+          [id],
+          {"quantity": quantity}
+        ],
+        'kwargs': {},
       });
 
       print('Update response: $response');

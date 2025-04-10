@@ -59,6 +59,17 @@ dependencies:
   flutter_blue_plus: ^1.35.3
   permission_handler: ^11.4.0
   device_info_plus: ^11.3.3
+  flutter_esc_pos_utils: ^1.0.1
+  x_printer: ^0.0.7
+  image_picker: ^1.1.2
+  printing: ^5.14.2
+  pdf: ^3.11.3
+  bluetooth_print_all_platform: ^2.4.7
+  print_bluetooth_thermal: ^1.1.6
+  screenshot: ^3.0.0
+  image: ^4.5.4
+
+
 
 dev_dependencies:
   flutter_test:
@@ -87,7 +98,17 @@ flutter:
     - assets/images/
     - assets/locales/
 
-
+  fonts:
+    - family: Roboto
+      fonts:
+        - asset: assets/font/Roboto-Regular.ttf
+          weight: 400
+        - asset: assets/font/Roboto-Medium.ttf
+          weight: 500
+        - asset: assets/font/Roboto-Bold.ttf
+          weight: 700
+        - asset: assets/font/Roboto-Black.ttf
+          weight: 900
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 

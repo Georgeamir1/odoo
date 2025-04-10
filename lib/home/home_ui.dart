@@ -5,7 +5,6 @@ import '../localization.dart';
 import '../login/login_ui.dart';
 import '../networking/odoo_service.dart';
 import '../sales_order/sales_order_list.dart';
-import '../sales_order/sales_order_ui.dart';
 
 class HomePage extends StatelessWidget {
   final Function(String) changeLanguage;

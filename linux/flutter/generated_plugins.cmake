@@ -3,7 +3,10 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  bluetooth_print_all_platform
+  file_selector_linux
   flutter_localization
+  printing
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST

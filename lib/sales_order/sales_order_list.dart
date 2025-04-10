@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lottie/lottie.dart';
 import 'package:odoo/sales_order/sales_order_cubit.dart';
 import 'package:odoo/sales_order/sales_order_status.dart';
-import 'package:odoo/sales_order/sales_order_ui.dart';
+import 'package:odoo/sales_order/new_sales_order.dart';
 
 import '../sales_order/widgets.dart';
 import '../localization.dart';

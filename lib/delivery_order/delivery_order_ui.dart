@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lottie/lottie.dart';
 import 'package:odoo/delivery_order/delivery_order_widgets.dart';
 import '../localization.dart';
+import '../networking/odoo_service.dart';
 import 'delivery_order_cubit.dart';
 import 'delivery_order_status.dart';
 import '../InventoryReceipts/new_inventory_receipt.dart';
@@ -13,8 +14,16 @@ class DeliveryOrderPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => DeliveryOrderCubit()..fetchDeliveryOrders(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<DeliveryOrderCubit>(
+          create: (context) => DeliveryOrderCubit()..fetchDeliveryOrders(),
+        ),
+        BlocProvider<DeliveryOrderDetailCubit>(
+          create: (context) =>
+              DeliveryOrderDetailCubit(OdooRpcService())..GetCompanyName(),
+        ),
+      ],
       child: BlocConsumer<DeliveryOrderCubit, DeliveryOrderState>(
         listener: (context, state) {
           if (state is DeliveryOrderError) {

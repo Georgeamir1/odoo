@@ -220,6 +220,7 @@ Widget buildStatusIndicator(String state) {
 }
 
 void showDetails(BuildContext context, dynamic order) {
+  DeliveryOrderDetailCubit.get(context).GetCompanyName();
   Navigator.push(
     context,
     MaterialPageRoute(

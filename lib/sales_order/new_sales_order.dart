@@ -1,11 +1,9 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:odoo/sales_order/sales_order_cubit.dart';
 import 'package:odoo/sales_order/sales_order_list.dart';
 import 'package:odoo/sales_order/sales_order_status.dart';
-
 import '../localization.dart';
 
 class QuotationScreen extends StatefulWidget {
@@ -58,37 +56,35 @@ class _QuotationScreenState extends State<QuotationScreen> {
       ],
       child: Scaffold(
         appBar: PreferredSize(
-          preferredSize:
-              Size.fromHeight(70.0), // Increased height for a premium feel
+          preferredSize: const Size.fromHeight(70.0),
           child: Container(
             decoration: BoxDecoration(
-              color: Color(0xFF714B67),
-              borderRadius: BorderRadius.vertical(
+              color: const Color(0xFF714B67),
+              borderRadius: const BorderRadius.vertical(
                 bottom: Radius.circular(25),
               ),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.2),
                   blurRadius: 10,
-                  offset: Offset(0, 4),
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
             child: AppBar(
               title: Text(
                 AppLocalizations.of(context).order,
-                style: TextStyle(
+                style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 20, // Increased font size
-                  fontWeight: FontWeight.bold, // Bold for better readability
-                  letterSpacing: 1.2, // Spacing for a premium look
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
                 ),
               ),
-              centerTitle: true, // Center title for better alignment
-              backgroundColor:
-                  Colors.transparent, // Transparent to show gradient
-              elevation: 0, // No extra shadow
-              iconTheme: IconThemeData(color: Colors.white), // White icon color
+              centerTitle: true,
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              iconTheme: const IconThemeData(color: Colors.white),
             ),
           ),
         ),
@@ -99,8 +95,6 @@ class _QuotationScreenState extends State<QuotationScreen> {
             children: [
               _buildCustomerSelection(),
               const SizedBox(height: 16),
-              /* _buildPaymentTermsSelection(),
-              const SizedBox(height: 16),*/
               _buildOrderLinesSection(),
               const SizedBox(height: 16),
               _buildTotalPriceSection(),
@@ -150,10 +144,8 @@ class _QuotationScreenState extends State<QuotationScreen> {
               if (selectedCustomer.isNotEmpty) {
                 customerId = selectedCustomer['id'].toString();
                 pricelist = selectedCustomer['property_product_pricelist'][0];
-                print(pricelist);
-                final customerName = selectedCustomer['name'];
                 PartnersCubit.get(context)
-                    .setSelectedCustomer(customerId, customerName);
+                    .setSelectedCustomer(customerId, selectedCustomer['name']);
               }
             },
             fieldViewBuilder:
@@ -163,7 +155,8 @@ class _QuotationScreenState extends State<QuotationScreen> {
                 children: [
                   Text(
                     AppLocalizations.of(context).customer,
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   const SizedBox(height: 8),
                   TextFormField(
@@ -177,7 +170,7 @@ class _QuotationScreenState extends State<QuotationScreen> {
                       ),
                       suffixIcon: textEditingController.text.isNotEmpty
                           ? IconButton(
-                              icon: Icon(Icons.clear),
+                              icon: const Icon(Icons.clear),
                               onPressed: () {
                                 textEditingController.clear();
                                 PartnersCubit.get(context)
@@ -200,49 +193,13 @@ class _QuotationScreenState extends State<QuotationScreen> {
     );
   }
 
-  /*Widget _buildPaymentTermsSelection() {
-    return BlocBuilder<PaymentTermCubit, PaymentTermState>(
-      builder: (context, state) {
-        if (state is PaymentTermLoadingState) {
-          return const Center(child: CircularProgressIndicator());
-        } else if (state is PaymentTermErrorState) {
-          return Center(child: Text("${state.error}"));
-        } else if (state is PaymentTermLoadedState) {
-          return _buildDropdown(
-              title: AppLocalizations.of(context).payment_terms,
-              value: state.selectedPaymentTerm,
-              items: state.paymentTerm
-                  .map<String>((type) => type['name'] as String)
-                  .toList(),
-              onChanged: (value) {
-                final selectedpaymentTerm = state.paymentTerm.firstWhere(
-                  (customer) => customer['name'] == value,
-                  orElse: () => {},
-                );
-                if (selectedpaymentTerm.isNotEmpty) {
-                  paymentTermId = selectedpaymentTerm['id'].toString();
-                  paymentTermName = selectedpaymentTerm['name'];
-                  print(paymentTermId);
-                  print(paymentTermId);
-                  PaymentTermCubit.get(context)
-                      .setSelectedPaymentTerm(customerId, paymentTermName);
-                }
-              });
-        } else {
-          return Center(
-              child: Text(AppLocalizations.of(context).no_payment_terms_found));
-        }
-      },
-    );
-  }*/
-
   Widget _buildOrderLinesSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           AppLocalizations.of(context).order_lines,
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         const SizedBox(height: 8),
         Column(
@@ -255,10 +212,10 @@ class _QuotationScreenState extends State<QuotationScreen> {
         Align(
           alignment: Alignment.centerRight,
           child: TextButton.icon(
-            icon: const Icon(Icons.add, color: Color(0xFF00A09D)), // Odoo teal
+            icon: const Icon(Icons.add, color: Color(0xFF00A09D)),
             label: Text(
               AppLocalizations.of(context).add_line,
-              style: TextStyle(color: Color(0xFF00A09D)), // Odoo teal
+              style: const TextStyle(color: Color(0xFF00A09D)),
             ),
             onPressed: () => setState(() => _orderLines.add(OrderLine())),
           ),
@@ -296,7 +253,7 @@ class _QuotationScreenState extends State<QuotationScreen> {
                       children: [
                         Text(
                           AppLocalizations.of(context).product,
-                          style: TextStyle(
+                          style: const TextStyle(
                               fontWeight: FontWeight.bold, fontSize: 16),
                         ),
                         const SizedBox(height: 8),
@@ -317,16 +274,23 @@ class _QuotationScreenState extends State<QuotationScreen> {
                           onSelected: (String selection) {
                             setState(() {
                               _orderLines[index].selectedProduct = selection;
-                              var selectedProduct = state.Products.firstWhere(
+                              final selectedProduct = state.Products.firstWhere(
                                 (product) => product['name'] == selection,
                               );
+
+                              if (selectedProduct['taxes_id'] != null &&
+                                  selectedProduct['taxes_id'].isNotEmpty) {
+                                _orderLines[index].selectedProductTAX =
+                                    selectedProduct['taxes_id'][0].toString();
+                              } else {
+                                _orderLines[index].selectedProductTAX = null;
+                              }
+
                               _orderLines[index].productId =
                                   selectedProduct['product_variant_ids'][0];
                               _orderLines[index].PriceProductId =
                                   selectedProduct['id'];
-                              print(_orderLines[index].PriceProductId);
 
-                              // استدعاء PricelistCubit لجلب السعر بناءً على pricelist و product_id
                               if (pricelist != null &&
                                   _orderLines[index].productId != null) {
                                 context.read<PricelistCubit>().getProductPrice(
@@ -338,7 +302,6 @@ class _QuotationScreenState extends State<QuotationScreen> {
                           },
                           fieldViewBuilder: (context, textEditingController,
                               focusNode, onFieldSubmitted) {
-                            // Initialize controller with current value
                             if (_orderLines[index].selectedProduct != null) {
                               textEditingController.text =
                                   _orderLines[index].selectedProduct!;
@@ -366,6 +329,8 @@ class _QuotationScreenState extends State<QuotationScreen> {
                                             _orderLines[index].productId = null;
                                             _orderLines[index].StocQuantitiy =
                                                 null;
+                                            _orderLines[index]
+                                                .selectedProductTAX = null;
                                           });
                                         },
                                       )
@@ -430,15 +395,7 @@ class _QuotationScreenState extends State<QuotationScreen> {
                                         ''),
                                 enabled: false,
                               ),
-                              SizedBox(
-                                height: 4,
-                              ),
-                              Text(
-                                "",
-                                style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.green),
-                              ),
+                              const SizedBox(height: 4),
                             ],
                           );
                         } else if (state is ProductsErrorState) {
@@ -448,8 +405,6 @@ class _QuotationScreenState extends State<QuotationScreen> {
                               _buildTextField(
                                 label: AppLocalizations.of(context).unit_price,
                                 keyboardType: TextInputType.number,
-                                onChanged: (val) => _orderLines[index]
-                                    .unitPrice = double.tryParse(val),
                                 controller: TextEditingController(
                                     text: _orderLines[index]
                                             .unitPrice
@@ -457,11 +412,9 @@ class _QuotationScreenState extends State<QuotationScreen> {
                                         ''),
                                 enabled: false,
                               ),
-                              SizedBox(
-                                height: 4,
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(8.0),
+                              const SizedBox(height: 4),
+                              const Padding(
+                                padding: EdgeInsets.all(8.0),
                                 child: Text("Error loading price",
                                     style: TextStyle(color: Colors.red)),
                               ),
@@ -474,8 +427,6 @@ class _QuotationScreenState extends State<QuotationScreen> {
                               _buildTextField(
                                 label: AppLocalizations.of(context).unit_price,
                                 keyboardType: TextInputType.number,
-                                onChanged: (val) => _orderLines[index]
-                                    .unitPrice = double.tryParse(val),
                                 controller: TextEditingController(
                                     text: _orderLines[index]
                                             .unitPrice
@@ -483,10 +434,8 @@ class _QuotationScreenState extends State<QuotationScreen> {
                                         ''),
                                 enabled: false,
                               ),
-                              SizedBox(
-                                height: 4,
-                              ),
-                              Text("Fetching price..."),
+                              const SizedBox(height: 4),
+                              const Text("Fetching price..."),
                             ],
                           );
                         }
@@ -497,54 +446,65 @@ class _QuotationScreenState extends State<QuotationScreen> {
               ),
               const SizedBox(height: 8),
               BlocConsumer<TaxesCubit, TaxesState>(
-                listener: (context, state) {},
-                builder: (context, state) {
-                  if (state is TaxesLoadingState) {
-                    return const Center(child: CircularProgressIndicator());
-                  } else if (state is TaxesErrorState) {
-                    return Center(child: Text("${state.error}"));
-                  } else if (state is TaxesLoadedState) {
-                    return _buildDropdown(
-                      title: AppLocalizations.of(context).taxes,
-                      value: state.taxes.any((tax) =>
-                              tax['name'] == _orderLines[index].selectedTax)
-                          ? _orderLines[index].selectedTax
-                          : null,
-                      onChanged: (value) => setState(() {
-                        _orderLines[index].selectedTax = value;
-                        var selectedTax = state.taxes.firstWhere(
-                          (tax) => tax['name'] == value,
-                        );
-                        _orderLines[index].taxAmount = selectedTax['amount'];
-                        _orderLines[index].taxId =
-                            selectedTax['id']; // Store tax ID
-                        // Store tax ID
-                      }),
-                      items: state.taxes
-                          .map((tax) => tax['name'] as String)
-                          .toList(),
-                    );
-                  } else {
-                    return const Center(child: Text("No taxes found"));
+                listener: (context, state) {
+                  if (state is TaxesLoadedState) {
+                    final currentTaxId = _orderLines[index].selectedProductTAX;
+                    if (currentTaxId != null) {
+                      final taxExists = state.taxes.any(
+                        (tax) => tax['id'].toString() == currentTaxId,
+                      );
+
+                      setState(() {
+                        if (taxExists) {
+                          final selectedTax = state.taxes.firstWhere(
+                            (tax) => tax['id'].toString() == currentTaxId,
+                          );
+                          _orderLines[index].taxAmount =
+                              selectedTax['amount']?.toDouble() ?? 0.0;
+                          _orderLines[index].taxId = selectedTax['id'];
+                        } else {
+                          _orderLines[index].taxAmount = 0.0;
+                          _orderLines[index].taxId = null;
+                        }
+                      });
+                    }
                   }
                 },
-              ),
-              const SizedBox(height: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${AppLocalizations.of(context).taxes} \$${_orderLines[index].tax.toStringAsFixed(2)}',
-                    style: const TextStyle(color: Colors.grey),
-                  ),
-                  Text(
-                    '${AppLocalizations.of(context).total_price_with_tax} \$${_orderLines[index].totalPriceWithTax.toStringAsFixed(2)}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF714B67), // Odoo purple
-                    ),
-                  ),
-                ],
+                builder: (context, state) {
+                  if (state is TaxesLoadingState) {
+                    return const CircularProgressIndicator();
+                  } else if (state is TaxesErrorState) {
+                    return Text("Error: ${state.error}");
+                  } else if (state is TaxesLoadedState) {
+                    final currentTax = state.taxes.firstWhere(
+                      (tax) =>
+                          tax['id'].toString() ==
+                          _orderLines[index].selectedProductTAX,
+                      orElse: () => null,
+                    );
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          currentTax != null
+                              ? "${AppLocalizations.of(context).tax}: ${currentTax['name']} (${currentTax['amount']}%)"
+                              : AppLocalizations.of(context).no_tax_applied,
+                          style: const TextStyle(color: Colors.grey),
+                        ),
+                        Text(
+                          '${AppLocalizations.of(context).total_price_with_tax}: \$${_orderLines[index].totalPriceWithTax.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF714B67),
+                          ),
+                        ),
+                      ],
+                    );
+                  } else {
+                    return const Text("No tax data");
+                  }
+                },
               ),
               Align(
                 alignment: Alignment.centerRight,
@@ -578,10 +538,9 @@ class _QuotationScreenState extends State<QuotationScreen> {
               Text(
                 '${AppLocalizations.of(context).total_price_with_tax} \$${_calculateTotalPriceWithTaxes().toStringAsFixed(2)}',
                 style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF00A09D), // Odoo teal
-                ),
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF00A09D)),
               ),
             ],
           ),
@@ -669,44 +628,6 @@ class _QuotationScreenState extends State<QuotationScreen> {
     );
   }
 
-  Widget _buildDropdown({
-    required String title,
-    required String? value,
-    required List<String> items,
-    required ValueChanged<String?> onChanged,
-  }) {
-    // Ensure the value exists in the items list
-    final validValue = items.contains(value) ? value : null;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          isExpanded: true,
-          value: validValue, // Use the validated value
-          decoration: InputDecoration(
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          hint: Text('${AppLocalizations.of(context).select} $title'),
-          items: items
-              .map((item) => DropdownMenuItem(
-                    value: item,
-                    child: Text(item),
-                  ))
-              .toList(),
-          onChanged: onChanged,
-        ),
-      ],
-    );
-  }
-
   Widget _buildTextField({
     required String label,
     required bool enabled,
@@ -731,40 +652,36 @@ class _QuotationScreenState extends State<QuotationScreen> {
 
 class OrderLine {
   String? selectedProduct;
-  int? productId; // Added to store product ID
-  int? PriceProductId; // Added to store product ID
-  double? StocQuantitiy; // Added to store product ID
+  String? selectedProductTAX;
+  int? productId;
+  int? PriceProductId;
+  double? StocQuantitiy;
   double? quantity;
   int? unitId;
   double? unitPrice;
-  String? selectedTax;
-  int? taxId; // Added to store tax ID
-  int? paymentTermId; // Added to store tax ID
-  double? taxAmount;
+  int? taxId;
+  int? paymentTermId;
+  double? taxAmount = 0.0;
 
   OrderLine({
     this.selectedProduct,
     this.productId,
-    this.selectedTax,
     this.quantity,
     this.unitId,
     this.taxId,
     this.paymentTermId,
     this.unitPrice,
-    this.taxAmount,
+    this.taxAmount = 0.0, // Initialize in constructor
   });
 
-  // Calculate the total price for the line (quantity * unit price)
   double get totalPrice {
     return (quantity ?? 0) * (unitPrice ?? 0);
   }
 
-  // Calculate the tax for the line (total price * tax rate)
   double get tax {
     return totalPrice * (taxAmount ?? 0) / 100;
   }
 
-  // Calculate the total price including tax
   double get totalPriceWithTax {
     return totalPrice + tax;
   }

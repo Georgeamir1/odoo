@@ -2,12 +2,12 @@ import 'package:bloc/bloc.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../networking/odoo_service.dart'; // Your Odoo RPC service
 import 'delivery_order_status.dart';
 import 'delivery_order_ui.dart'; // Contains DeliveryOrderState classes
 
 class DeliveryOrderCubit extends Cubit<DeliveryOrderState> {
-
   DeliveryOrderCubit() : super(DeliveryOrderInitial());
   static DeliveryOrderCubit get(context) => BlocProvider.of(context);
   final OdooRpcService odooService = OdooRpcService();
@@ -21,7 +21,11 @@ class DeliveryOrderCubit extends Cubit<DeliveryOrderState> {
       final orders = await odooService.fetchRecords(
         'stock.picking', // Model name
         [
-          ['picking_type_id.code', '=', 'outgoing'] // Filter for outgoing deliveries
+          [
+            'picking_type_id.code',
+            '=',
+            'outgoing'
+          ] // Filter for outgoing deliveries
         ],
         [
           'id',
@@ -35,22 +39,26 @@ class DeliveryOrderCubit extends Cubit<DeliveryOrderState> {
       );
 
       // Reverse the list to show the most recent orders first and limit to 50 for performance
-      allOrders = List<Map<String, dynamic>>.from(orders.reversed.take(50));
-      List<Map<String, dynamic>> initialOrders = await _fetchMoveDetails(
-          allOrders.take(5).toList());
-
+      allOrders = List<Map<String, dynamic>>.from(orders.reversed.take(900));
+      List<Map<String, dynamic>> initialOrders =
+          await _fetchMoveDetails(allOrders.take(5).toList());
+      print("test");
       emit(DeliveryOrderLoaded(initialOrders));
     } catch (e) {
       // Notify UI of the error
       emit(DeliveryOrderError("Failed to fetch delivery orders: $e"));
     }
   }
-  Future<List<Map<String, dynamic>>> _fetchMoveDetails(List<Map<String, dynamic>> orders) async {
+
+  Future<List<Map<String, dynamic>>> _fetchMoveDetails(
+      List<Map<String, dynamic>> orders) async {
     List<Map<String, dynamic>> enrichedOrders = [];
 
     for (var order in orders) {
       // Fetch move details for the order
-      final moves = await odooService.fetchMoves(order['move_ids_without_package']);
+      final moves =
+          await odooService.fetchMoves(order['move_ids_without_package']);
+      print(order['move_ids_without_package']);
 
       // Enrich the order with move details
       enrichedOrders.add({
@@ -66,6 +74,7 @@ class DeliveryOrderCubit extends Cubit<DeliveryOrderState> {
 
     return enrichedOrders;
   }
+
   Future<void> updateDeliveryStatus(int id, String status) async {
     emit(DeliveryOrderLoading());
     try {
@@ -103,6 +112,7 @@ class DeliveryOrderCubit extends Cubit<DeliveryOrderState> {
       emit(DeliveryOrderError("Error updating order: $e"));
     }
   }
+
   void loadMore() async {
     if (state is DeliveryOrderLoaded && currentLength < allOrders.length) {
       int newLength = currentLength + 5;
@@ -113,6 +123,7 @@ class DeliveryOrderCubit extends Cubit<DeliveryOrderState> {
           [...((state as DeliveryOrderLoaded).orders), ...newOrders]));
     }
   }
+
   void filterOrders(String query) {
     // If the query is "all", return all orders.
     if (query.toLowerCase() == 'all') {
@@ -138,6 +149,7 @@ class DeliveryOrderCubit extends Cubit<DeliveryOrderState> {
       emit(DeliveryOrderError("Error filtering orders: $e"));
     }
   }
+
   Future<void> validateOrder(int pickingId,
       {required bool createBackorder, dynamic fallbackOrder}) async {
     emit(DeliveryOrderLoading());
@@ -259,11 +271,13 @@ class DeliveryOrderCubit extends Cubit<DeliveryOrderState> {
     }
   }
 }
+
 class DeliveryOrderDetailCubit extends Cubit<DeliveryOrderDetailState> {
   final OdooRpcService odooService;
   static DeliveryOrderDetailCubit get(context) => BlocProvider.of(context);
 
-  DeliveryOrderDetailCubit(this.odooService) : super(DeliveryOrderDetailLoading());
+  DeliveryOrderDetailCubit(this.odooService)
+      : super(DeliveryOrderDetailLoading());
   List<dynamic> allOrders = []; // Original unfiltered orders list
 
   /// Fetches delivery orders from Odoo and enriches each order with move details.
@@ -286,7 +300,6 @@ class DeliveryOrderDetailCubit extends Cubit<DeliveryOrderDetailState> {
           'picking_type_id',
           'move_ids_without_package',
           'products_availability',
-
         ],
       );
 
@@ -298,7 +311,9 @@ class DeliveryOrderDetailCubit extends Cubit<DeliveryOrderDetailState> {
       final picking = result.first;
 
       // 2) Fetch move details
-      final moves = await odooService.fetchMoves(picking['move_ids_without_package']);
+      final moves =
+          await odooService.fetchMoves(picking['move_ids_without_package']);
+      print(picking['move_ids_without_package']);
 
       // 3) Create a combined map of picking + moves
       final detail = {
@@ -312,18 +327,57 @@ class DeliveryOrderDetailCubit extends Cubit<DeliveryOrderDetailState> {
         'moves': moves,
       };
 
-      emit(DeliveryOrderDetailLoaded(detail,picking));
+      emit(DeliveryOrderDetailLoaded(detail, picking));
     } catch (e) {
-      emit(DeliveryOrderDetailError('Failed to fetch delivery order details: $e'));
+      emit(DeliveryOrderDetailError(
+          'Failed to fetch delivery order details: $e'));
     }
   }
+
+  String CompanyName1 = '';
+  Future<void> GetCompanyName() async {
+    emit(DeliveryOrderDetailLoading());
+    try {
+      // 1) Fetch picking record
+      final CompanyName = await odooService.fetchRecords(
+        'res.company',
+        [],
+        ['name'],
+      );
+
+      if (CompanyName.isEmpty) {
+        emit(DeliveryOrderDetailError('No details found for this order.'));
+        print(CompanyName);
+        return;
+      }
+
+      // Get the company name
+      final companyName = CompanyName.first['name'].toString();
+
+      // Save to SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('company_name', companyName);
+
+      emit(DeliveryGetCompanyNameSuccess(companyName));
+
+      print("CompanyName is : $companyName");
+      CompanyName1 = companyName;
+      print("CompanyName1 is : $CompanyName1");
+    } catch (e) {
+      emit(DeliveryOrderDetailError(
+          'Failed to fetch delivery order details: $e'));
+    }
+  }
+
   Future<void> validateOrder(int pickingId) async {
     try {
       print('⏳ Validating order ID: $pickingId');
       final result = await odooService.callKw({
         'model': 'stock.picking',
         'method': 'button_validate',
-        'args': [[pickingId]],
+        'args': [
+          [pickingId]
+        ],
         'kwargs': {},
       });
 
@@ -335,7 +389,7 @@ class DeliveryOrderDetailCubit extends Cubit<DeliveryOrderDetailState> {
         print('✅ Validation successful - no backorder needed');
         emit(DeliveryOrdervalidationSuccess());
         await fetchDetail(pickingId);
-        emit(NavigateToDeliveryOrderPage());  // Emit navigation state
+        emit(NavigateToDeliveryOrderPage()); // Emit navigation state
       } else if (result is Map<String, dynamic>) {
         print('⚠️ Backorder wizard detected');
         final wizardId = result['res_id'];
@@ -343,7 +397,8 @@ class DeliveryOrderDetailCubit extends Cubit<DeliveryOrderDetailState> {
         // Handle backorder wizard here
       } else {
         print('❌ Unexpected response format');
-        emit(DeliveryOrdervalidationError('Unexpected validation response: $result'));
+        emit(DeliveryOrdervalidationError(
+            'Unexpected validation response: $result'));
       }
     } catch (e, stackTrace) {
       print('‼️ Validation Error:');
@@ -352,6 +407,7 @@ class DeliveryOrderDetailCubit extends Cubit<DeliveryOrderDetailState> {
       emit(DeliveryOrdervalidationError('Error validating order: $e'));
     }
   }
+
   Future<void> validate_without_backOrder(int pickingId) async {
     try {
       final result = await odooService.callKw({
@@ -375,8 +431,7 @@ class DeliveryOrderDetailCubit extends Cubit<DeliveryOrderDetailState> {
         emit(NoBackOrderValidationSuccess());
         // إعادة تحميل البيانات لتحديث الواجهة
         await fetchDetail(pickingId); // تأكد من تعريف originalPickingId
-        emit(NavigateToDeliveryOrderPage());  // Emit navigation state
-
+        emit(NavigateToDeliveryOrderPage()); // Emit navigation state
       } else {
         print("❌ فشل الإلغاء - الرد غير متوقع: $result");
         emit(NoBackOrderValidationError('فشل الإلغاء: $result'));
@@ -388,6 +443,7 @@ class DeliveryOrderDetailCubit extends Cubit<DeliveryOrderDetailState> {
       emit(NoBackOrderValidationError('خطأ تقني: $e'));
     }
   }
+
   Future<void> validate_With_BackOrder(int backorderConfirmationId) async {
     try {
       print('⏳ Validating WITH backorder, Wizard ID: $backorderConfirmationId');
@@ -411,17 +467,39 @@ class DeliveryOrderDetailCubit extends Cubit<DeliveryOrderDetailState> {
       if (result == true) {
         print('✅ Backorder created successfully');
         emit(BackOrderValidationSuccess());
-        emit(NavigateToDeliveryOrderPage());  // Emit navigation state
-
+        emit(NavigateToDeliveryOrderPage()); // Emit navigation state
       } else {
         print('❌ Backorder creation failed');
-        emit(BackOrderValidationError('Backorder validation failed. Response: $result'));
+        emit(BackOrderValidationError(
+            'Backorder validation failed. Response: $result'));
       }
     } catch (e, stackTrace) {
       print('‼️ With Backorder Error:');
       print('Error: $e');
       print('Stack trace: $stackTrace');
       emit(BackOrderValidationError('Error validating with backorder: $e'));
+    }
+  }
+
+  Future<void> updateMoveQuantityOrDemand(
+      int moveId, double quantity, double demand) async {
+    final values = {
+      '"quantity"': quantity, // Use the correct field name
+      // Ensure this field is also correct
+    };
+    try {
+      print('Updating move with values: $values');
+      final success =
+          await odooService.updatequantity('stock.move', moveId, quantity);
+      if (success) {
+        SnackBar(
+            content:
+                Text("Quantity Updated Successfully")); // Re-emit updated state
+      } else {
+        emit(DeliveryOrderDetailError('Failed to update record.'));
+      }
+    } catch (e) {
+      emit(DeliveryOrderDetailError('Error updating record: ${e.toString()}'));
     }
   }
 }
