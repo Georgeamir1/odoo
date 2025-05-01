@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lottie/lottie.dart';
 import 'package:odoo/delivery_order/delivery_order_widgets.dart';
+import '../home/home_ui.dart';
 import '../localization.dart';
 import '../networking/odoo_service.dart';
 import 'delivery_order_cubit.dart';
@@ -33,107 +34,127 @@ class DeliveryOrderPage extends StatelessWidget {
           }
         },
         builder: (context, state) {
-          return Scaffold(
-            appBar: PreferredSize(
-              preferredSize: const Size.fromHeight(70.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Color(0xFF714B67),
-                  borderRadius: BorderRadius.vertical(
-                    bottom: Radius.circular(25),
+          return WillPopScope(
+            onWillPop: () async {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => HomePage(
+                    changeLanguage: (String languageCode) {
+                      // You could also update and save the language preference here if needed.
+                      Localizations.localeOf(context).languageCode;
+                    },
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 10,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
                 ),
-                child: AppBar(
-                  backgroundColor: Colors.transparent,
-                  iconTheme: IconThemeData(color: Colors.white),
-                  title: Text(AppLocalizations.of(context).delivery_orders,
-                      style: TextStyle(color: Colors.white)),
-                  actions: [
-                    IconButton(
-                      icon: Icon(Icons.search, color: Colors.white),
-                      onPressed: () => showSearch(
-                        context: context,
-                        delegate: DeliveryOrderSearch(
-                            DeliveryOrderCubit.get(context)),
-                      ),
+              );
+              return false;
+            },
+            child: Scaffold(
+              appBar: PreferredSize(
+                preferredSize: const Size.fromHeight(70.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Color(0xFF714B67),
+                    borderRadius: BorderRadius.vertical(
+                      bottom: Radius.circular(25),
                     ),
-                    buildFilterMenu(context),
-                  ],
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 10,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: AppBar(
+                    backgroundColor: Colors.transparent,
+                    iconTheme: IconThemeData(color: Colors.white),
+                    title: Text(AppLocalizations.of(context).delivery_orders,
+                        style: TextStyle(color: Colors.white)),
+                    actions: [
+                      IconButton(
+                        icon: Icon(Icons.search, color: Colors.white),
+                        onPressed: () => showSearch(
+                          context: context,
+                          delegate: DeliveryOrderSearch(
+                              DeliveryOrderCubit.get(context)),
+                        ),
+                      ),
+                      buildFilterMenu(context),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            body: RefreshIndicator(
-              onRefresh: () async =>
-                  DeliveryOrderCubit.get(context).fetchDeliveryOrders(),
-              child: BlocBuilder<DeliveryOrderCubit, DeliveryOrderState>(
-                builder: (context, state) {
-                  if (state is DeliveryOrderLoading) {
-                    return Center(
-                        child: Lottie.asset('assets/images/loading4.json',
-                            height: 200, width: 200));
-                  }
-                  if (state is DeliveryOrderError) {
-                    return Center(child: Text(state.message));
-                  }
-                  if (state is DeliveryOrderLoaded) {
-                    return Stack(
-                      alignment: Alignment.bottomRight,
-                      children: [
-                        buildOrderList(
-                          context,
-                          state.orders,
-                          () => context.read<DeliveryOrderCubit>().loadMore(),
-                        ),
-                        if (state.orders.length <
-                            context.read<DeliveryOrderCubit>().allOrders.length)
-                          Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                FloatingActionButton.extended(
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            newdeliveryorderScreen(),
-                                      ),
-                                    );
-                                  },
-                                  label: Text(
-                                      AppLocalizations.of(context).new_order,
-                                      style: TextStyle(color: Colors.white)),
-                                  tooltip: "Load more orders",
-                                  backgroundColor: Color(0xFF714B67),
-                                ),
-                                /*     FloatingActionButton.extended(
-                                  onPressed: () => context
-                                      .read<DeliveryOrderCubit>()
-                                      .loadMore(),
-                                  label: Text(
-                                      AppLocalizations.of(context).load_more,
-                                      style: TextStyle(color: Colors.white)),
-                                  tooltip: "Load more orders",
-                                  backgroundColor: Color(0xFF714B67),
-                                ),*/
-                              ],
-                            ),
+              body: RefreshIndicator(
+                onRefresh: () async =>
+                    DeliveryOrderCubit.get(context).fetchDeliveryOrders(),
+                child: BlocBuilder<DeliveryOrderCubit, DeliveryOrderState>(
+                  builder: (context, state) {
+                    if (state is DeliveryOrderLoading) {
+                      return Center(
+                          child: Lottie.asset('assets/images/loading4.json',
+                              height: 200, width: 200));
+                    }
+                    if (state is DeliveryOrderError) {
+                      return Center(child: Text(state.message));
+                    }
+                    if (state is DeliveryOrderLoaded) {
+                      return Stack(
+                        alignment: Alignment.bottomRight,
+                        children: [
+                          buildOrderList(
+                            context,
+                            state.orders,
+                            () => context.read<DeliveryOrderCubit>().loadMore(),
                           ),
-                      ],
-                    );
-                  }
-                  return Center(
-                      child:
-                          Text(AppLocalizations.of(context).no_orders_found));
-                },
+                          if (state.orders.length <
+                              context
+                                  .read<DeliveryOrderCubit>()
+                                  .allOrders
+                                  .length)
+                            Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  FloatingActionButton.extended(
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              newdeliveryorderScreen(),
+                                        ),
+                                      );
+                                    },
+                                    label: Text(
+                                        AppLocalizations.of(context).new_order,
+                                        style: TextStyle(color: Colors.white)),
+                                    tooltip: "Load more orders",
+                                    backgroundColor: Color(0xFF714B67),
+                                  ),
+                                  /*     FloatingActionButton.extended(
+                                    onPressed: () => context
+                                        .read<DeliveryOrderCubit>()
+                                        .loadMore(),
+                                    label: Text(
+                                        AppLocalizations.of(context).load_more,
+                                        style: TextStyle(color: Colors.white)),
+                                    tooltip: "Load more orders",
+                                    backgroundColor: Color(0xFF714B67),
+                                  ),*/
+                                ],
+                              ),
+                            ),
+                        ],
+                      );
+                    }
+                    return Center(
+                        child:
+                            Text(AppLocalizations.of(context).no_orders_found));
+                  },
+                ),
               ),
             ),
           );

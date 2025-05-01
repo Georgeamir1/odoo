@@ -127,57 +127,296 @@ class _InVoicePrintScreenState extends State<InVoicePrintScreen> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.indigo.shade800,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Header with close button
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                "Print Invoice",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ],
-          ),
-          const Divider(),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildHeader(),
+            const Divider(height: 24),
+            _buildPrinterSection(),
+            const SizedBox(height: 16),
+            _buildInvoicePreviewSection(),
+            const SizedBox(height: 16),
+            _buildPrintButton(),
+          ],
+        ),
+      ),
+    );
+  }
 
-          // Printer selection section
-          _buildPrinterSelection(),
-          SizedBox(
-            height: 8,
-          ),
-          // Invoice preview section
-          Expanded(
-            child: SingleChildScrollView(
-              child: Screenshot(
-                controller: screenshotController,
-                child: _buildInvoicePreview(),
+  Widget _buildHeader() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          "Print Invoice",
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Colors.indigo.shade800,
               ),
+        ),
+        IconButton(
+          icon: Icon(Icons.close, color: Colors.grey.shade600),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPrinterSection() {
+    return Container(
+      height: 270,
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.print, color: Colors.indigo.shade800),
+                    const SizedBox(width: 8),
+                    Text("Printer Settings",
+                        style: Theme.of(context).textTheme.titleLarge),
+                    const Spacer(),
+                    _buildConnectionStatus(),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _buildPaperSizeSelector(),
+                const SizedBox(height: 16),
+                _buildPrinterList(),
+              ],
             ),
           ),
+        ),
+      ),
+    );
+  }
 
-          // Print button
-          Padding(
-            padding: const EdgeInsets.only(top: 16.0),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _printReceipt,
-                child: const Text("PRINT INVOICE"),
+  Widget _buildConnectionStatus() {
+    return Row(
+      children: [
+        Icon(
+          Icons.circle,
+          color: connected ? Colors.green.shade600 : Colors.red.shade600,
+          size: 12,
+        ),
+        const SizedBox(width: 4),
+        Text(
+          connected ? "Connected" : "Disconnected",
+          style: TextStyle(
+            fontSize: 8,
+            color: connected ? Colors.green.shade800 : Colors.red.shade800,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPaperSizeSelector() {
+    return Row(
+      children: [
+        Text("Paper Width:", style: Theme.of(context).textTheme.bodyMedium),
+        const SizedBox(width: 12),
+        DropdownButton<int>(
+          value: _selectedSize,
+          items: _paperSizeList.map((size) {
+            return DropdownMenuItem<int>(
+              value: size,
+              child: Text("$size mm", style: const TextStyle(fontSize: 14)),
+            );
+          }).toList(),
+          onChanged: (value) => setState(() => _selectedSize = value!),
+          underline: Container(height: 1, color: Colors.indigo.shade100),
+        ),
+        const Spacer(),
+        IconButton(
+          icon: Icon(Icons.refresh, color: Colors.indigo.shade800),
+          onPressed: _loadBluetoothDevices,
+          tooltip: "Refresh printers",
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPrinterList() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (availableBluetoothDevices.isEmpty) {
+      return ListTile(
+        leading: Icon(Icons.warning, color: Colors.orange.shade800),
+        title: Text(_warningMessage ?? "No printers found"),
+      );
+    }
+
+    return Column(
+      children: availableBluetoothDevices
+          .map((device) => _buildPrinterItem(device))
+          .toList(),
+    );
+  }
+
+  Widget _buildPrinterItem(BluetoothInfo device) {
+    final isConnected = connected && device.macAdress == selectedMacAddress;
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(vertical: 4),
+      leading: Icon(Icons.bluetooth, color: Colors.blue.shade800),
+      title: Text(device.name,
+          style: const TextStyle(fontWeight: FontWeight.w500)),
+      subtitle:
+          Text(device.macAdress, style: TextStyle(color: Colors.grey.shade600)),
+      trailing: isConnected
+          ? Icon(Icons.check_circle, color: Colors.green.shade800)
+          : const SizedBox.shrink(),
+      onTap: () => _connectToPrinter(device.macAdress),
+      tileColor: isConnected ? Colors.green.shade50 : null,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+    );
+  }
+
+  Widget _buildInvoicePreviewSection() {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Screenshot(
+        controller: screenshotController,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildInvoiceHeader(),
+              const SizedBox(height: 16),
+              _buildCustomerInfo(),
+              Text('______________________________________'),
+              const SizedBox(height: 4),
+              _buildItemsList(),
+              const SizedBox(height: 2),
+              Text('______________________________________'),
+              _buildTotals(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInvoiceHeader() {
+    return Center(
+      child: Column(
+        children: [
+          Text(
+            widget.orderData['company_name'],
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            "Invoice",
+            style: TextStyle(
+              fontSize: 14,
+              letterSpacing: 1.2,
+            ),
+          ),
+          Text('______________________________________'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCustomerInfo() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildInfoRow("Customer:", widget.orderData['customer_name']),
+        _buildInfoRow("Salesperson:", widget.orderData['user_name']),
+        _buildInfoRow("Date:", DateTime.now().toString().substring(0, 16)),
+      ],
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(label, style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildItemsList() {
+    return Column(
+      children: [
+        const Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text("Qty", style: TextStyle(fontWeight: FontWeight.bold)),
+            Text("Item", style: TextStyle(fontWeight: FontWeight.bold)),
+            Text("Price", style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ...widget.orderData['items'].map<Widget>((item) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text("${item['quantity']}x"),
+                  Text(item['name'], overflow: TextOverflow.ellipsis),
+                  Text("${item['price'].toStringAsFixed(2)}"),
+                ],
               ),
+            )),
+      ],
+    );
+  }
+
+  Widget _buildTotalRow(String label, double amount, {bool isTotal = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
+              color: isTotal ? Colors.indigo.shade800 : Colors.grey.shade700,
+            ),
+          ),
+          const Spacer(),
+          Text(
+            "${amount.toStringAsFixed(2)}",
+            style: TextStyle(
+              fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
+              color: isTotal ? Colors.indigo.shade800 : Colors.grey.shade700,
+              fontSize: isTotal ? 16 : 14,
             ),
           ),
         ],
@@ -211,7 +450,10 @@ class _InVoicePrintScreenState extends State<InVoicePrintScreen> {
                 ),
                 const Spacer(),
                 IconButton(
-                  icon: const Icon(Icons.refresh),
+                  icon: const Icon(
+                    Icons.refresh,
+                    color: Colors.black87,
+                  ),
                   onPressed: _loadBluetoothDevices,
                 ),
               ],
@@ -234,6 +476,42 @@ class _InVoicePrintScreenState extends State<InVoicePrintScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildPrintButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        icon: Icon(Icons.print, color: Colors.white),
+        label: const Text(
+          "PRINT INVOICE",
+          style: TextStyle(color: Colors.white),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.indigo.shade800,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        onPressed: _printReceipt,
+      ),
+    );
+  }
+
+  Widget _buildTotals() {
+    return Column(
+      children: [
+        _buildTotalRow("Subtotal:", widget.orderData['total_before_vat']),
+        _buildTotalRow("Tax:", widget.orderData['vat_amount']),
+        Text('______________________________________'),
+        _buildTotalRow(
+          "TOTAL:",
+          widget.orderData['total_with_vat'],
+          isTotal: true,
+        ),
+      ],
     );
   }
 
@@ -272,7 +550,7 @@ class _InVoicePrintScreenState extends State<InVoicePrintScreen> {
                     children: [
                       Text("${item['quantity']}"),
                       Text("X   ${item['name']}"),
-                      Text("\$${item['price'].toStringAsFixed(2)}"),
+                      Text(" ${item['price'].toStringAsFixed(2)}"),
                     ],
                   ),
                 )),
@@ -291,21 +569,6 @@ class _InVoicePrintScreenState extends State<InVoicePrintScreen> {
             const Center(child: Text("Thank you for your order!")),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildTotalRow(String label, double amount, {bool isTotal = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        children: [
-          Text(label,
-              style: isTotal ? TextStyle(fontWeight: FontWeight.bold) : null),
-          const Spacer(),
-          Text("${amount.toStringAsFixed(2)}",
-              style: isTotal ? TextStyle(fontWeight: FontWeight.bold) : null),
-        ],
       ),
     );
   }

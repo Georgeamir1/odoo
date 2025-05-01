@@ -1,27 +1,26 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:odoo/sales_order/sales_order_cubit.dart';
+import 'package:odoo/sales_order/sales_order_list.dart';
 import 'package:odoo/sales_order/sales_order_status.dart';
-
-import '../InventoryReceipts/new_inventory_receipt.dart';
 import '../localization.dart';
+import '../networking/odoo_service.dart';
+import 'delivery_order_ui.dart';
 
 class newdeliveryorderScreen extends StatefulWidget {
   const newdeliveryorderScreen({Key? key}) : super(key: key);
 
   @override
-  State<newdeliveryorderScreen> createState() => _newdeliveryorderState();
+  State<newdeliveryorderScreen> createState() => _newdeliveryorderScreenState();
 }
 
-class _newdeliveryorderState extends State<newdeliveryorderScreen> {
+class _newdeliveryorderScreenState extends State<newdeliveryorderScreen> {
   final _expirationDateController = TextEditingController();
   final _dateController = TextEditingController();
   var customerId;
-  var paymentTermId;
-  var paymentTermName;
-  var payment_term;
+  var payment_term_id;
+  var pricelist;
 
   List<OrderLine> _orderLines = [OrderLine()];
 
@@ -32,15 +31,49 @@ class _newdeliveryorderState extends State<newdeliveryorderScreen> {
     super.dispose();
   }
 
-  double _calculateTotalPrice() {
-    return _orderLines.fold(0, (total, line) {
-      return total + line.totalPrice;
-    });
-  }
+  double _calculateTotalPrice() =>
+      _orderLines.fold(0, (sum, line) => sum + line.totalPrice);
 
-  double _calculateTotalPriceWithTaxes() {
-    return _orderLines.fold(0, (total, line) {
-      return total + line.totalPriceWithTax;
+  double _calculateTotalPriceWithTaxes() =>
+      _orderLines.fold(0, (sum, line) => sum + line.totalPriceWithTax);
+
+  Future<void> _fetchPriceAndTax(int index) async {
+    final productId = _orderLines[index].PriceProductId;
+    final taxId = _orderLines[index].selectedProductTAX;
+    if (productId == null || pricelist == null) return;
+
+    final service = OdooRpcService();
+    final priceResult = await service.fetchRecords(
+      "product.pricelist.item",
+      [
+        ["pricelist_id", "=", pricelist],
+        ["product_tmpl_id", "=", productId]
+      ],
+      ["fixed_price"],
+    );
+    final taxResult = taxId != null
+        ? await service.fetchRecords("account.tax", [
+            ["id", "=", int.parse(taxId)]
+          ], [
+            "id",
+            "amount"
+          ])
+        : [];
+
+    setState(() {
+      _orderLines[index].unitPrice = priceResult.isNotEmpty
+          ? priceResult[0]["fixed_price"] ?? // Use pricelist price if available
+              _orderLines[index]
+                  .selectedProductWithoutPricelist ?? // Fallback to default price
+              0.0 // Final fallback if both are null
+          : _orderLines[index].selectedProductWithoutPricelist ?? 0.0;
+      if (taxResult.isNotEmpty) {
+        _orderLines[index].taxAmount = taxResult[0]['amount'] ?? 0.0;
+        _orderLines[index].taxId = taxResult[0]['id'];
+      } else {
+        _orderLines[index].taxAmount = 0.0;
+        _orderLines[index].taxId = null;
+      }
     });
   }
 
@@ -48,64 +81,87 @@ class _newdeliveryorderState extends State<newdeliveryorderScreen> {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider(create: (context) => PartnersCubit()..getPartners()),
-        BlocProvider(create: (context) => ProductsCubit()..getProducts()),
-        BlocProvider(create: (context) => PaymentTermCubit()..getPaymentTerm()),
-        BlocProvider(create: (context) => TaxesCubit()..getTaxes()),
-        BlocProvider(create: (context) => SaleOrderCubit()),
+        BlocProvider(create: (_) => PartnersCubit()..getCustomers()),
+        BlocProvider(create: (_) => ProductsCubit()..getProducts()),
+        BlocProvider(create: (_) => SaleOrderCubit()),
       ],
       child: Scaffold(
-        appBar: PreferredSize(
-          preferredSize:
-              Size.fromHeight(70.0), // Increased height for a premium feel
-          child: Container(
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          iconTheme: const IconThemeData(color: Colors.white),
+          title: Text(
+            AppLocalizations.of(context).deliveryOrder,
+            style: const TextStyle(color: Colors.white),
+          ),
+          centerTitle: true,
+          elevation: 0,
+          flexibleSpace: Container(
             decoration: BoxDecoration(
-              color: Color(0xFF714B67),
-              borderRadius: BorderRadius.vertical(
+              color: const Color(0xFF714B67),
+              borderRadius: const BorderRadius.vertical(
                 bottom: Radius.circular(25),
               ),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.2),
                   blurRadius: 10,
-                  offset: Offset(0, 4),
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
-            child: AppBar(
-              title: Text(
-                AppLocalizations.of(context).deliveryOrder,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20, // Increased font size
-                  fontWeight: FontWeight.bold, // Bold for better readability
-                  letterSpacing: 1.2, // Spacing for a premium look
+          ),
+        ),
+        body: Container(
+          color: Colors.grey[50],
+          child: SafeArea(
+            child: Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildHeaderSection(),
+                        const SizedBox(height: 24),
+                        _buildOrderLinesSection(),
+                        const SizedBox(height: 24),
+/*
+                        _buildTotalPriceSection(),
+*/
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-              centerTitle: true, // Center title for better alignment
-              backgroundColor:
-                  Colors.transparent, // Transparent to show gradient
-              elevation: 0, // No extra shadow
-              iconTheme: IconThemeData(color: Colors.white), // White icon color
+                _buildActionButtonsBar(),
+              ],
             ),
           ),
         ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildCustomerSelection(),
-              const SizedBox(height: 16),
-              _buildPaymentTermsSelection(),
-              const SizedBox(height: 16),
-              _buildOrderLinesSection(),
-              const SizedBox(height: 16),
-              _buildTotalPriceSection(),
-              const SizedBox(height: 16),
-              _buildActionButtons(),
-            ],
-          ),
+      ),
+    );
+  }
+
+  Widget _buildHeaderSection() {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              AppLocalizations.of(context).customer,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: Color(0xFF714B67),
+              ),
+            ),
+            const SizedBox(height: 12),
+            _buildCustomerSelection(),
+          ],
         ),
       ),
     );
@@ -114,69 +170,82 @@ class _newdeliveryorderState extends State<newdeliveryorderScreen> {
   Widget _buildCustomerSelection() {
     return BlocBuilder<PartnersCubit, PartnersState>(
       builder: (context, state) {
-        if (state is PartnersLoadingState) {
-          return const Center(child: CircularProgressIndicator());
-        } else if (state is PartnersErrorState) {
-          return Center(child: Text("${state.error}"));
-        } else if (state is PartnersLoadedState) {
-          return _buildDropdown(
-            title: AppLocalizations.of(context).customer,
-            value: state.selectedCustomer,
-            items: state.partners
-                .map((customer) => customer['name'] as String)
-                .toList(),
-            onChanged: (value) {
-              final selectedCustomer = state.partners.firstWhere(
-                (customer) => customer['name'] == value,
-                orElse: () => {},
-              );
+        if (state is PartnersLoadedState) {
+          return Autocomplete<String>(
+            displayStringForOption: (o) => o,
+            optionsBuilder: (textEditingValue) {
+              if (textEditingValue.text == '')
+                return state.partners.map((e) => e['name'] as String);
+              return state.partners.map((e) => e['name'] as String).where(
+                  (name) => name
+                      .toLowerCase()
+                      .contains(textEditingValue.text.toLowerCase()));
+            },
+            onSelected: (selection) {
+              final selected = state.partners
+                  .firstWhere((e) => e['name'] == selection, orElse: () => {});
+              if (selected.isNotEmpty) {
+                // Capture new values before setState
+                final newCustomerId = selected['id'].toString();
+                final newCustomerName = selected['name'];
 
-              if (selectedCustomer.isNotEmpty) {
-                customerId = selectedCustomer['id'].toString();
-                final customerName = selectedCustomer['name'];
+                final newPricelist = selected['property_product_pricelist'][0];
+                final oldPricelist = pricelist; // Store current pricelist
+
+                setState(() {
+                  customerId = newCustomerId;
+                  payment_term_id =
+                      selected['property_supplier_payment_term_id']
+                              is List<dynamic>
+                          ? selected['property_supplier_payment_term_id'][0]
+                          : 1;
+                  print("payment_term_id is : ${payment_term_id}");
+                  pricelist = newPricelist;
+
+                  // Clear order lines only if pricelist changed
+                  if (oldPricelist != newPricelist) {
+                    _orderLines = [OrderLine()]; // Reset to one empty line
+                  }
+                });
 
                 PartnersCubit.get(context)
-                    .setSelectedCustomer(customerId, customerName);
+                    .setSelectedCustomer(newCustomerId, newCustomerName);
               }
             },
+            fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
+              return TextFormField(
+                controller: controller,
+                focusNode: focusNode,
+                decoration: InputDecoration(
+                  hintText: AppLocalizations.of(context).customer,
+                  prefixIcon: const Icon(Icons.person_outline,
+                      color: Color(0xFF714B67)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide:
+                        const BorderSide(color: Color(0xFF714B67), width: 2),
+                  ),
+                  filled: true,
+                  fillColor: Colors.white,
+                ),
+              );
+            },
           );
-        } else {
-          return const Center(child: Text("No customers found"));
         }
-      },
-    );
-  }
-
-  Widget _buildPaymentTermsSelection() {
-    return BlocBuilder<PaymentTermCubit, PaymentTermState>(
-      builder: (context, state) {
-        if (state is PaymentTermLoadingState) {
-          return const Center(child: CircularProgressIndicator());
-        } else if (state is PaymentTermErrorState) {
-          return Center(child: Text("${state.error}"));
-        } else if (state is PaymentTermLoadedState) {
-          return _buildDropdown(
-              title: AppLocalizations.of(context).payment_terms,
-              value: state.selectedPaymentTerm,
-              items: state.paymentTerm
-                  .map<String>((type) => type['name'] as String)
-                  .toList(),
-              onChanged: (value) {
-                final selectedpaymentTerm = state.paymentTerm.firstWhere(
-                  (customer) => customer['name'] == value,
-                  orElse: () => {},
-                );
-                if (selectedpaymentTerm.isNotEmpty) {
-                  paymentTermId = selectedpaymentTerm['id'].toString();
-                  paymentTermName = selectedpaymentTerm['name'];
-
-                  PaymentTermCubit.get(context)
-                      .setSelectedPaymentTerm(customerId, paymentTermName);
-                }
-              });
-        } else {
-          return const Center(child: Text("No payment terms found"));
-        }
+        return const Center(
+          child: Padding(
+            padding: EdgeInsets.all(16.0),
+            child: CircularProgressIndicator(color: Color(0xFF714B67)),
+          ),
+        );
       },
     );
   }
@@ -186,206 +255,248 @@ class _newdeliveryorderState extends State<newdeliveryorderScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          AppLocalizations.of(context).receipt_lines,
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-        ),
-        const SizedBox(height: 8),
-        Column(
-          children: _orderLines
-              .asMap()
-              .entries
-              .map((entry) => _buildOrderLine(entry.key))
-              .toList(),
-        ),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton.icon(
-            icon: const Icon(Icons.add, color: Color(0xFF00A09D)), // Odoo teal
-            label: Text(
-              AppLocalizations.of(context).add_line,
-              style: TextStyle(color: Color(0xFF00A09D)), // Odoo teal
-            ),
-            onPressed: () => setState(() => _orderLines.add(OrderLine())),
+          AppLocalizations.of(context).order,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF714B67),
           ),
+        ),
+        const SizedBox(height: 16),
+        ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: _orderLines.length,
+          itemBuilder: (context, index) {
+            return _buildOrderLine(index);
+          },
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            TextButton.icon(
+              icon: const Icon(Icons.add_circle, color: Color(0xFF00A09D)),
+              label: Text(
+                AppLocalizations.of(context).add_line,
+                style: const TextStyle(
+                    color: Color(0xFF00A09D), fontWeight: FontWeight.bold),
+              ),
+              onPressed: () => setState(() => _orderLines.add(OrderLine())),
+              style: TextButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
 
   Widget _buildOrderLine(int index) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8),
-      child: Card(
-        elevation: 2,
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              BlocBuilder<ProductsCubit, ProductsState>(
-                builder: (context, state) {
-                  if (state is ProductsLoadingState) {
-                    return const Center(child: CircularProgressIndicator());
-                  } else if (state is ProductsErrorState) {
-                    return Center(child: Text("${state.error}"));
-                  } else if (state is ProductsLoadedState) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildDropdown(
-                          title: AppLocalizations.of(context).product,
-                          value: state.Products.any((product) =>
-                                  product['name'] ==
-                                  _orderLines[index].selectedProduct)
-                              ? _orderLines[index].selectedProduct
-                              : null,
-                          items: state.Products.map(
-                              (product) => product['name'] as String).toList(),
-                          onChanged: (value) => setState(() {
-                            var selectedProduct = state.Products.firstWhere(
-                              (product) => product['name'] == value,
-                            );
-
-                            _orderLines[index].selectedProduct = value;
-                            _orderLines[index].unitPrice =
-                                selectedProduct['list_price'];
-                            _orderLines[index].productId = selectedProduct[
-                                'product_variant_ids']; // Store product ID
-                            _orderLines[index].productId =
-                                selectedProduct['product_variant_ids']
-                                    [0];// Available quantity
-                            _orderLines[index].unitId = selectedProduct[
-                                    'uom_id'] ??
-                                1; // Store UoM ID (defaults to 1 if missing)
-                          }),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(4.0),
-                          child: Text(
-                            '${AppLocalizations.of(context).available_quantity}${_orderLines[index].StocQuantitiy ?? 0}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF714B67),
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  } else {
-                    return const Center(child: Text("No products found"));
-                  }
-                },
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildTextField(
-                      label: AppLocalizations.of(context).quantity,
-                      keyboardType: TextInputType.number,
-                      onChanged: (val) =>
-                          _orderLines[index].quantity = double.tryParse(val),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildTextField(
-                      label: AppLocalizations.of(context).unit_price,
-                      keyboardType: TextInputType.number,
-                      onChanged: (val) =>
-                          _orderLines[index].unitPrice = double.tryParse(val),
-                      controller: TextEditingController(
-                          text: _orderLines[index].unitPrice?.toString() ?? ''),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              BlocConsumer<TaxesCubit, TaxesState>(
-                listener: (context, state) {},
-                builder: (context, state) {
-                  if (state is TaxesLoadingState) {
-                    return const Center(child: CircularProgressIndicator());
-                  } else if (state is TaxesErrorState) {
-                    return Center(child: Text("${state.error}"));
-                  } else if (state is TaxesLoadedState) {
-                    return _buildDropdown(
-                      title: AppLocalizations.of(context).taxes,
-                      value: state.taxes.any((tax) =>
-                              tax['name'] == _orderLines[index].selectedTax)
-                          ? _orderLines[index].selectedTax
-                          : null,
-                      onChanged: (value) => setState(() {
-                        var selectedTax = state.taxes.firstWhere(
-                          (tax) => tax['name'] == value,
-                        );
-
-                        _orderLines[index].selectedTax = value;
-                        _orderLines[index].taxAmount = selectedTax['amount'];
-                        _orderLines[index].taxId =
-                            selectedTax['id']; // Store tax ID
-                      }),
-                      items: state.taxes
-                          .map((tax) => tax['name'] as String)
-                          .toList(),
-                    );
-                  } else {
-                    return const Center(child: Text("No taxes found"));
-                  }
-                },
-              ),
-              const SizedBox(height: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${AppLocalizations.of(context).tax}: \$${_orderLines[index].tax.toStringAsFixed(2)}',
-                    style: const TextStyle(color: Colors.grey),
-                  ),
-                  Text(
-                    '${AppLocalizations.of(context).total_price_with_tax}: \$${_orderLines[index].totalPriceWithTax.toStringAsFixed(2)}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF714B67),
-                    ),
-                  ),
-                ],
-              ),
-              Align(
-                alignment: Alignment.centerRight,
-                child: IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  onPressed: () => setState(() => _orderLines.removeAt(index)),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTotalPriceSection() {
     return Card(
       elevation: 2,
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '${AppLocalizations.of(context).total_price}: \$${_calculateTotalPrice().toStringAsFixed(2)}',
-              style: const TextStyle(fontSize: 16),
-            ),
             const SizedBox(height: 8),
-            Text(
-              '${AppLocalizations.of(context).total_price_with_tax}: \$${_calculateTotalPriceWithTaxes().toStringAsFixed(2)}',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF00A09D), // Odoo teal
+            BlocBuilder<ProductsCubit, ProductsState>(
+              builder: (context, state) {
+                if (state is ProductsLoadedState) {
+                  return Autocomplete<String>(
+                    displayStringForOption: (o) => o,
+                    optionsBuilder: (textEditingValue) {
+                      if (textEditingValue.text == '')
+                        return state.Products.map((e) => e['name'] as String);
+                      return state.Products.map((e) => e['name'] as String)
+                          .where((name) => name
+                              .toLowerCase()
+                              .contains(textEditingValue.text.toLowerCase()));
+                    },
+                    onSelected: (selection) async {
+                      final selected = state.Products.firstWhere(
+                          (e) => e['name'] == selection);
+                      setState(() {
+                        _orderLines[index].selectedProduct = selection;
+                        _orderLines[index].selectedProductWithoutPricelist =
+                            selected['list_price'];
+                        print(
+                            _orderLines[index].selectedProductWithoutPricelist);
+                        _orderLines[index].selectedProductTAX =
+                            selected['taxes_id'].isNotEmpty
+                                ? selected['taxes_id'][0].toString()
+                                : null;
+                        _orderLines[index].productId =
+                            selected['product_variant_ids'][0];
+                        _orderLines[index].PriceProductId = selected['id'];
+                      });
+                      await _fetchPriceAndTax(index);
+                    },
+                    fieldViewBuilder: (context, controller, focusNode, _) {
+                      if (_orderLines[index].selectedProduct != null) {
+                        controller.text = _orderLines[index].selectedProduct!;
+                      }
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: TextFormField(
+                          controller: controller,
+                          focusNode: focusNode,
+                          decoration: InputDecoration(
+                            labelText: AppLocalizations.of(context).product,
+                            labelStyle:
+                                const TextStyle(color: Color(0xFF714B67)),
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8)),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  const BorderSide(color: Color(0xFFE0E0E0)),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  const BorderSide(color: Color(0xFF714B67)),
+                            ),
+                            prefixIcon: const Icon(Icons.inventory_2_outlined,
+                                color: Color(0xFF714B67)),
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                }
+                return const CircularProgressIndicator(
+                    color: Color(0xFF714B67));
+              },
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: TextField(
+                      decoration: InputDecoration(
+                        labelText: AppLocalizations.of(context).quantity,
+                        labelStyle: const TextStyle(color: Color(0xFF714B67)),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide:
+                              const BorderSide(color: Color(0xFFE0E0E0)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide:
+                              const BorderSide(color: Color(0xFF714B67)),
+                        ),
+                      ),
+                      keyboardType: TextInputType.number,
+                      onChanged: (val) => setState(() =>
+                          _orderLines[index].quantity = double.tryParse(val)),
+                    ),
+                  ),
+                ),
+                Container(
+                  height: 55,
+                  margin: const EdgeInsets.only(left: 12),
+                  decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Color(0xFFE0E0E0))),
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Text(
+                        '${_orderLines[index].unitPrice?.toStringAsFixed(2) ?? "0.00"}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+/*
+            const SizedBox(height: 16),
+*/
+/*
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFE0E0E0)),
               ),
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        AppLocalizations.of(context).tax,
+                        style: const TextStyle(color: Color(0xFF714B67)),
+                      ),
+                      Text(
+                        '${_orderLines[index].taxAmount?.toStringAsFixed(2) ?? "0.0"}%',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Divider(),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Subtotal',
+                        style: TextStyle(color: Color(0xFF714B67)),
+                      ),
+                      Text(
+                        '${_orderLines[index].totalPrice.toStringAsFixed(2)}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Total with Tax',
+                        style: TextStyle(color: Color(0xFF714B67)),
+                      ),
+                      Text(
+                        '${_orderLines[index].totalPriceWithTax.toStringAsFixed(2)}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+*/
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                  onPressed: () => setState(() => _orderLines.removeAt(index)),
+                ),
+              ],
             ),
           ],
         ),
@@ -393,139 +504,202 @@ class _newdeliveryorderState extends State<newdeliveryorderScreen> {
     );
   }
 
-  Widget _buildActionButtons() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        Expanded(
-          child: BlocConsumer<SaleOrderCubit, SaleOrderState>(
-            listener: (context, state) {
-              if (state is SaleOrderSuccess) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                      content: Text("Order created: ${state.saleOrderId}")),
-                );
-              } else if (state is SaleOrderError) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("${state.message}")),
-                );
-              }
-            },
-            builder: (context, state) {
-              bool isLoading = state is SaleOrderLoading; // Check loading state
-
-              return ElevatedButton(
-                onPressed: isLoading
-                    ? null
-                    : () async {
-                        if (customerId == null || _orderLines.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text(
-                                    "Please select a customer and add order lines.")),
-                          );
-
-                          return;
-                        }
-
-                        // Check if all order lines are valid
-                        for (var line in _orderLines) {
-                          if (line.productId == null ||
-                              line.quantity == null ||
-                              line.unitId == null) {
-                            print(jsonEncode(line.toJson()));
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                  content: Text(
-                                      "Invalid order line: ${jsonEncode(line.toJson())}")),
-                            );
-                            return;
-                          }
-                        }
-
-                        try {
-                          final cubit = SaleOrderCubit.get(context);
-                          cubit.createAndConfirmStockPicking(
-                            partnerId: int.parse(customerId.toString()),
-                            pickingTypeId: 2, // Change if needed
-                            locationId: 5, // Update dynamically if needed
-                            locationDestId: 8, // Update dynamically if needed
-                            orderLines: _orderLines,
-                          );
-                        } catch (e) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text("Error: ${e.toString()}")),
-                          );
-                        }
-                      },
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF714B67)),
-                child: isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : Text(AppLocalizations.of(context).save,
-                        style: TextStyle(color: Colors.white)),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDropdown({
-    required String title,
-    required String? value,
-    required List<String> items,
-    required ValueChanged<String?> onChanged,
-  }) {
-    // Ensure the value exists in the items list
-    final validValue = items.contains(value) ? value : null;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          isExpanded: true,
-          value: validValue, // Use the validated value
-          decoration: InputDecoration(
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
+  Widget _buildTotalPriceSection() {
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Order Summary',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF714B67),
+              ),
             ),
-          ),
-          hint: Text('${AppLocalizations.of(context).select} $title'),
-          items: items
-              .map((item) => DropdownMenuItem(
-                    value: item,
-                    child: Text(item),
-                  ))
-              .toList(),
-          onChanged: onChanged,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTextField({
-    required String label,
-    TextInputType keyboardType = TextInputType.text,
-    ValueChanged<String>? onChanged,
-    TextEditingController? controller,
-  }) {
-    return TextField(
-      controller: controller,
-      keyboardType: keyboardType,
-      decoration: InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+            const SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  AppLocalizations.of(context).total_price,
+                  style: const TextStyle(fontSize: 16),
+                ),
+                Text(
+                  '${_calculateTotalPrice().toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  AppLocalizations.of(context).total_price_with_tax,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF714B67),
+                  ),
+                ),
+                Text(
+                  '${_calculateTotalPriceWithTaxes().toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF714B67),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
-      onChanged: onChanged,
     );
   }
+
+  Widget _buildActionButtonsBar() {
+    return Builder(
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+/*
+            color: Colors.white,
+*/
+              /*   boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 4,
+                offset: const Offset(0, -2),
+              ),
+            ],*/
+              ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              TextButton(
+                  child: Text(
+                    AppLocalizations.of(context).cancel,
+                    style: const TextStyle(color: Color(0xFF714B67)),
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      side: const BorderSide(color: Color(0xFF714B67)),
+                    ),
+                  )),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF714B67),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: () async {
+                  try {
+                    if (customerId == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(AppLocalizations.of(context)
+                              .select_customer_and_lines),
+                          backgroundColor: Colors.red[700],
+                        ),
+                      );
+                      return;
+                    }
+                    final moves = _orderLines.map((line) {
+                      print(line.productId);
+                      return [
+                        0, // Create new record
+                        0, // Reserved by Odoo
+                        {
+                          "product_id": line.productId ?? 0,
+                          "name": line.selectedProduct ?? "Product",
+                          "product_uom_qty": line.quantity ?? 1.0,
+                          "product_uom": 1, // Verify UoM ID
+                          "location_id": 8, // Source location
+                          "location_dest_id": 5, // Destination location
+                        }
+                      ];
+                    }).toList();
+                    final orderData = {
+                      "partner_id": int.parse(customerId.toString()),
+                      "picking_type_id": 2, // Incoming shipments type
+                      "location_id": 8,
+                      "location_dest_id": 5,
+                      "move_ids_without_package": moves,
+                    };
+                    await BlocProvider.of<SaleOrderCubit>(context)
+                        .createInventoryReceipt(orderData);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                            AppLocalizations.of(context).created_successfully),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const DeliveryOrderPage(),
+                      ),
+                    );
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error: ${e.toString()}'),
+                        backgroundColor: Colors.red[700],
+                      ),
+                    );
+                  }
+                },
+                child: Text(AppLocalizations.of(context).save,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    )),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class OrderLine {
+  String? selectedProduct;
+  double? selectedProductWithoutPricelist;
+  String? selectedProductTAX;
+  int? productId;
+  int? unit_id;
+  String? productname;
+  int? PriceProductId;
+  double? StocQuantitiy;
+  double? quantity;
+  int? unitId;
+  double? unitPrice;
+  int? taxId;
+  int? payment_term_id;
+  double? taxAmount = 0.0;
+
+  double get totalPrice => (quantity ?? 0) * (unitPrice ?? 0);
+  double get tax => totalPrice * (taxAmount ?? 0) / 100;
+  double get totalPriceWithTax => totalPrice + tax;
 }

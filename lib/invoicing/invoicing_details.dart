@@ -2,23 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
-import 'package:odoo/InventoryReceipts/widgets.dart';
-import 'package:odoo/delivery_order/delivery_order_ui.dart';
-import 'package:odoo/sales_order/sales_order_cubit.dart';
-import 'package:odoo/sales_order/sales_order_list.dart';
-import 'package:odoo/sales_order/sales_order_status.dart';
-import 'package:odoo_rpc/odoo_rpc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../delivery_order/delivery_order_cubit.dart';
-import '../delivery_order/delivery_order_status.dart';
-import '../invoicing/invoicing_cubit.dart';
 import '../localization.dart';
 import '../networking/odoo_service.dart';
+import '../sales_order/sales_order_cubit.dart';
 import '../testttt.dart';
+import 'invoicing_cubit.dart';
+import 'invoicing_list.dart';
+import 'invoicing_status.dart';
 
-class SaleOrderdetailsPage extends StatelessWidget {
+class InvoicingDetailsPage extends StatelessWidget {
   final int pickingId;
-  const SaleOrderdetailsPage({
+  const InvoicingDetailsPage({
     Key? key,
     required this.pickingId,
   }) : super(key: key);
@@ -29,7 +25,7 @@ class SaleOrderdetailsPage extends StatelessWidget {
       providers: [
         BlocProvider(
           create: (context) =>
-              SaleOrderdetailsCubit(OdooRpcService())..fetchDetail(pickingId),
+              invoicingdetailsCubit(OdooRpcService())..fetchDetail(pickingId),
         ),
         BlocProvider(
           create: (context) => TaxesCubit(),
@@ -43,16 +39,15 @@ class SaleOrderdetailsPage extends StatelessWidget {
         appBar: AppBar(
           iconTheme: const IconThemeData(color: Colors.white),
           title: Text(
-            AppLocalizations.of(context).salesOrderDetails,
+            AppLocalizations.of(context).invoicesdetails,
             style: const TextStyle(color: Colors.white),
           ),
-          /*   actions: [
-            BlocBuilder<SaleOrderdetailsCubit, SaleOrderdetailsState>(
+          actions: [
+            BlocBuilder<invoicingdetailsCubit, invoicingdetailsState>(
               builder: (context, state) {
-                if (state is SaleOrderdetailsLoaded) {
+                if (state is invoicingdetailsLoaded) {
                   return IconButton(
                     icon: const Icon(Icons.print, color: Colors.white),
-
                     onPressed: () async {
                       await DeliveryOrderDetailCubit.get(context)
                           .GetCompanyName();
@@ -94,7 +89,7 @@ class SaleOrderdetailsPage extends StatelessWidget {
                 return const SizedBox.shrink();
               },
             )
-          ],*/
+          ],
           centerTitle: true,
           elevation: 0,
           flexibleSpace: Container(
@@ -113,9 +108,9 @@ class SaleOrderdetailsPage extends StatelessWidget {
             ),
           ),
         ),
-        body: BlocListener<SaleOrderdetailsCubit, SaleOrderdetailsState>(
+        body: BlocListener<invoicingdetailsCubit, invoicingdetailsState>(
           listener: (context, state) {
-            if (state is SaleOrderdetailsvalidationSuccess) {
+            if (state is invoicingdetailsvalidationSuccess) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
@@ -123,14 +118,14 @@ class SaleOrderdetailsPage extends StatelessWidget {
                   backgroundColor: Colors.green,
                 ),
               );
-            } else if (state is NavigateToSaleOrderdetailsPage) {
+            } else if (state is NavigateToinvoicingdetailsPage) {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => SaleOrderPage(),
+                  builder: (context) => invoicingPage(),
                 ),
               );
-            } else if (state is SaleOrderdetailsvalidationError) {
+            } else if (state is invoicingdetailsvalidationError) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('⚠️ ${state.message}'),
@@ -139,14 +134,13 @@ class SaleOrderdetailsPage extends StatelessWidget {
               );
             }
           },
-          child: BlocBuilder<SaleOrderdetailsCubit, SaleOrderdetailsState>(
+          child: BlocBuilder<invoicingdetailsCubit, invoicingdetailsState>(
             builder: (context, state) {
-              print(pickingId);
-              if (state is SaleOrderdetailsLoading) {
+              if (state is invoicingdetailsLoading) {
                 return _buildLoadingState(context);
-              } else if (state is SaleOrderdetailsError) {
+              } else if (state is invoicingdetailsError) {
                 return _buildErrorState(context, state.message);
-              } else if (state is SaleOrderdetailsLoaded) {
+              } else if (state is invoicingdetailsLoaded) {
                 return _buildContent(state, context);
               }
               return const SizedBox.shrink();
@@ -191,93 +185,359 @@ class SaleOrderdetailsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildContent(SaleOrderdetailsLoaded state, BuildContext context) {
+  Widget _buildContent(invoicingdetailsLoaded state, BuildContext context) {
+    final notPaid = state.picking['amount_residual_signed']?.toDouble() ?? 0.0;
+    final total = state.picking['amount_total']?.toDouble() ?? 0.0;
+    final payments = state.picking['payment_ids'] ?? [];
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          _OrderHeaderCard(detail: state.detail),
+          _OrderHeaderCard(detail: state.detail, picking: state.picking),
           const SizedBox(height: 16),
           _ProductListSection(moves: state.detail['moves']),
           const SizedBox(height: 24),
-          CreateInvoiceButton(saleOrderId: pickingId)
+          PaymentSection(
+            saleOrderId: pickingId,
+            detail: state.picking,
+            notPaid:
+                state.picking['payment_state'] == 'not_paid' ? total : notPaid,
+            total: total,
+            payments: payments,
+          ),
         ],
       ),
     );
   }
 }
 
-class CreateInvoiceButton extends StatelessWidget {
+class PaymentSection extends StatefulWidget {
   final int saleOrderId;
+  final Map<String, dynamic> detail;
+  final double notPaid;
+  final double total;
+  final List<dynamic> payments;
 
-  const CreateInvoiceButton({super.key, required this.saleOrderId});
+  const PaymentSection({
+    super.key,
+    required this.saleOrderId,
+    required this.detail,
+    required this.notPaid,
+    required this.total,
+    required this.payments,
+  });
 
   @override
-  Widget build(BuildContext context) {
-    return ElevatedButton.icon(
-      icon: const Icon(Icons.receipt_long),
-      label: const Text("إنشاء فاتورة مبدئية"),
-      onPressed: () async {
-        final odoo = OdooRpcService();
+  _PaymentSectionState createState() => _PaymentSectionState();
+}
 
-        final result = await odoo.callKw({
-          "model": "sale.advance.payment.inv",
-          "method": "create",
-          "args": [
-            {
-              "advance_payment_method":
-                  "delivered", // فاتورة عادية بناءً على الكمية المسلمة
-              "deduct_down_payments": true,
-              "consolidated_billing": true,
-              "sale_order_ids": [saleOrderId] // معرف طلب المبيعات
-            }
-          ],
-          'kwargs': {},
-          "context": {
-            "active_ids": [saleOrderId],
-            "active_model": "sale.order"
-          }
-        });
-        final result2 = await odoo.callKw({
-          "model": "sale.advance.payment.inv",
-          "method": "create_invoices",
-          "args": [
-            [result] // معرف طلب المبيعات
-          ],
-          'kwargs': {},
-          "context": {}
-        });
+class _PaymentSectionState extends State<PaymentSection> {
+  final _formKey = GlobalKey<FormState>();
+  double _paymentAmount = 0.0;
+  bool _isProcessing = false;
+  final TextEditingController _amountController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _paymentAmount = widget.notPaid;
+    _amountController.text = _paymentAmount.toStringAsFixed(2);
+  }
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _processPayment() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isProcessing = true);
+
+    try {
+      final odoo = OdooRpcService();
+
+      // 1. Ensure invoice is posted
+      // 1. Get invoice state
+      final invoice = await odoo.callKw({
+        "model": "account.move",
+        "method": "read",
+        "args": [
+          [widget.saleOrderId]
+        ],
+        "kwargs": {
+          "fields": ["state"]
+        }
+      });
+      final state = invoice.first['state'];
+      if (state == 'draft') {
+        // إذا كانت الفاتورة مسودة، ننشرها
         await odoo.callKw({
           "model": "account.move",
           "method": "action_post",
-          "args": [result2['res_id']],
-          "kwargs": {},
-          "context": {
-            "validate_analytic": true,
-            "disable_abnormal_invoice_detection": false
-          }
+          "args": [widget.saleOrderId],
+          "kwargs": {
+            "context": {
+              "validate_analytic": true,
+            }
+          },
         });
+      }
 
-        if (context.mounted) {
-          if (result2 != null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('تم إنشاء الفاتورة بنجاح 🎉')),
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('فشل إنشاء الفاتورة')),
-            );
+      // 2. Create payment wizard
+      final registerId = await odoo.callKw({
+        "model": "account.payment.register",
+        "method": "create",
+        "args": [
+          {
+            "journal_id": 7,
+            "amount": _paymentAmount,
+          }
+        ],
+        "kwargs": {
+          "context": {
+            "active_model": "account.move",
+            "payment_type": "inbound",
+            "active_ids": [widget.saleOrderId],
+            "journal_id": 7,
+            "payment_method_line_id": 1,
+            "amount": _paymentAmount,
+            "date": widget.detail['date'] ?? DateTime.now().toString(),
+            "communication": widget.detail['name'] ?? "Invoice Payment",
+            "dont_redirect_to_payments": true,
           }
         }
+      });
+
+      if (registerId == null) {
+        throw Exception("Failed to create payment wizard");
+      }
+
+      // 3. Process payment
+      await odoo.callKw({
+        "model": "account.payment.register",
+        "method": "action_create_payments",
+        "args": [
+          [registerId]
+        ],
+        "kwargs": {
+          "context": {
+            "active_model": "account.move",
+            "active_ids": [widget.saleOrderId],
+            "force_reconcile": true, // جرب تضيف دي
+            "dont_redirect_to_payments": true,
+          }
+        }
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(
+                "✅ Payment of \$${_paymentAmount.toStringAsFixed(2)} processed successfully!")),
+      );
+
+      // Refresh the data
+      BlocProvider.of<invoicingdetailsCubit>(context)
+          .fetchDetail(widget.saleOrderId);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("❌ Payment error: ${e.toString()}")),
+      );
+    } finally {
+      setState(() => _isProcessing = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Card(
+          elevation: 4,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Payment Information',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF714B67),
+                        ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Payment Summary
+                  _buildPaymentSummaryRow('Total Amount', widget.total),
+                  _buildPaymentSummaryRow(
+                    'Amount Due',
+                    widget.notPaid,
+                    isDue: true,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Payment Amount Input
+                  TextFormField(
+                    controller: _amountController,
+                    decoration: InputDecoration(
+                      labelText: 'Payment Amount',
+                      prefixIcon: const Icon(Icons.attach_money),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.refresh),
+                        onPressed: () {
+                          setState(() {
+                            _paymentAmount = widget.notPaid;
+                            _amountController.text =
+                                _paymentAmount.toStringAsFixed(2);
+                          });
+                        },
+                      ),
+                    ),
+                    keyboardType:
+                        TextInputType.numberWithOptions(decimal: true),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter payment amount';
+                      }
+                      final amount = double.tryParse(value) ?? 0;
+
+                      if (amount > widget.notPaid * 1.1) {
+                        return 'Amount cannot exceed 110% of remaining balance';
+                      }
+                      return null;
+                    },
+                    onChanged: (value) {
+                      _paymentAmount = double.tryParse(value) ?? 0;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Quick Payment Buttons
+                  if (widget.notPaid > 0) ...[
+                    Text(
+                      'Quick Payment:',
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _buildQuickPaymentButton(0.25),
+                        _buildQuickPaymentButton(0.5),
+                        _buildQuickPaymentButton(0.75),
+                        _buildQuickPaymentButton(1.0),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // Process Payment Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: const Color(0xFF714B67),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      onPressed: widget.detail['payment_state'] == 'not_paid' ||
+                              widget.detail['payment_state'] == 'partial'
+                          ? _processPayment
+                          : null,
+                      child: _isProcessing
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : Text(
+                              widget.detail['payment_state'] == 'paid'
+                                  ? 'Fully Paid'
+                                  : 'Process Payment',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPaymentSummaryRow(String label, double value,
+      {bool isDue = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.poppins(
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey.shade700,
+            ),
+          ),
+          Text(
+            '\$${value.toStringAsFixed(2)}',
+            style: GoogleFonts.poppins(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: isDue ? Colors.red : const Color(0xFF714B67),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickPaymentButton(double percentage) {
+    final amount = (widget.notPaid * percentage).toStringAsFixed(2);
+    return OutlinedButton(
+      style: OutlinedButton.styleFrom(
+        side: BorderSide(color: Colors.grey.shade300),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+      onPressed: () {
+        setState(() {
+          _paymentAmount = widget.notPaid * percentage;
+          _amountController.text = _paymentAmount.toStringAsFixed(2);
+        });
       },
+      child: Text('${(percentage * 100).toInt()}% (\$$amount)'),
     );
   }
 }
 
+// ... [Keep all your existing _OrderHeaderCard, _ProductListSection, _ProductListItem classes unchanged]
 class _OrderHeaderCard extends StatelessWidget {
   final Map<String, dynamic> detail;
+  final Map<String, dynamic> picking;
 
-  const _OrderHeaderCard({required this.detail});
+  const _OrderHeaderCard({required this.detail, required this.picking});
 
   @override
   Widget build(BuildContext context) {
@@ -299,27 +559,23 @@ class _OrderHeaderCard extends StatelessWidget {
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold, color: Color(0xFF714B67)),
                 ),
+                _buildStatusChip(picking['state']),
               ],
             ),
             const Divider(height: 24),
-            _buildInfoRow(Icons.calendar_today,
-                AppLocalizations.of(context).date, detail['date_order']),
-            _buildInfoRow(
-                Icons.timelapse,
-                AppLocalizations.of(context).pricelist,
-                "${detail['pricelist_id'] ?? AppLocalizations.of(context).notAvailable}"),
+            _buildInfoRow(Icons.timelapse, AppLocalizations.of(context).date,
+                "${DateTime.parse(detail['date']).day} / ${DateTime.parse(detail['date']).month} / ${DateTime.parse(detail['date']).year}"),
             _buildInfoRow(
                 Icons.description,
                 AppLocalizations.of(context).sourceDocument,
                 "${detail['name'] ?? AppLocalizations.of(context).notAvailable}"),
-            if (detail['payment_term_id'] != null)
-              _buildInfoRow(
-                Icons.category,
-                AppLocalizations.of(context).operationType,
-                detail['payment_term_id'] == false
-                    ? AppLocalizations.of(context).immediate
-                    : detail['payment_term_id'][1],
-              ),
+            _buildInfoRow(
+              Icons.category,
+              AppLocalizations.of(context).payment_terms,
+              detail['payment_term_id'] == false
+                  ? AppLocalizations.of(context).Immediate
+                  : detail['payment_term_id'][1],
+            ),
           ],
         ),
       ),
@@ -378,11 +634,9 @@ class _OrderHeaderCard extends StatelessWidget {
     switch (status.toLowerCase()) {
       case 'draft':
         return _StatusConfig(Colors.blue, Icons.edit);
-      case 'assigned':
-        return _StatusConfig(Colors.orange, Icons.assignment_turned_in);
-      case 'done':
+      case 'posted':
         return _StatusConfig(Colors.green, Icons.check_circle);
-      case 'cancel':
+      case 'canceled':
         return _StatusConfig(Colors.red, Icons.cancel);
       default:
         return _StatusConfig(Colors.grey, Icons.help_outline);
@@ -404,13 +658,20 @@ class _ProductListSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final productLines = moves
+        .where((move) =>
+            move['display_type'] == 'product' || move['display_type'] == null)
+        .where(
+            (move) => move['product_id'] != false && move['product_id'] != null)
+        .toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8),
           child: Text(
-            '${AppLocalizations.of(context).products} (${moves.length})',
+            '${AppLocalizations.of(context).products} (${productLines.length})',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: Colors.grey.shade600,
@@ -418,7 +679,7 @@ class _ProductListSection extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        ...moves.map((move) => _ProductListItem(move: move)).toList(),
+        ...productLines.map((move) => _ProductListItem(move: move)).toList(),
       ],
     );
   }
@@ -431,21 +692,13 @@ class _ProductListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final productName =
-        move['name']?.toString() ?? AppLocalizations.of(context).unknownProduct;
-    final quantity = move['product_uom_qty']?.toString() ?? '0';
-    final quantityDelivered = move['qty_delivered']?.toString() ?? '0';
-    final quantityInvoiced = move['qty_invoiced']?.toString() ?? '0';
-    final unit = move['product_uom'] is List && move['product_uom'].length > 1
-        ? move['product_uom'][1]?.toString() ?? ''
-        : '';
+        (move['product_id'] is List && move['product_id'].length > 1)
+            ? move['product_id'][1]
+            : AppLocalizations.of(context).unknownProduct;
+
     final priceUnit = (move['price_unit'] is num ? move['price_unit'] : 0.0)
         .toStringAsFixed(2);
-    final tax =
-        (move['price_tax'] is num ? move['price_tax'] : 0.0).toStringAsFixed(2);
-    final priceTax =
-        (move['price_tax'] is num ? move['price_tax'] : 0.0).toStringAsFixed(2);
-    final discount =
-        (move['discount'] is num ? move['discount'] : 0.0).toStringAsFixed(2);
+
     final priceSubtotal =
         (move['price_total'] is num ? move['price_total'] : 0.0)
             .toStringAsFixed(2);
@@ -492,26 +745,6 @@ class _ProductListItem extends StatelessWidget {
               children: [
                 _buildDetailItem(
                   context,
-                  Icons.scale,
-                  AppLocalizations.of(context).quantity,
-                  '$quantity $unit',
-                ),
-                _buildDetailItem(
-                  context,
-                  Icons.local_shipping,
-                  AppLocalizations.of(context).Delivered,
-                  quantityDelivered,
-                  Colors.green,
-                ),
-                _buildDetailItem(
-                  context,
-                  Icons.receipt,
-                  AppLocalizations.of(context).invoiced,
-                  quantityInvoiced,
-                  Colors.blue,
-                ),
-                _buildDetailItem(
-                  context,
                   Icons.attach_money,
                   AppLocalizations.of(context).unit_price,
                   '\$$priceUnit',
@@ -532,14 +765,10 @@ class _ProductListItem extends StatelessWidget {
                 children: [
                   _buildPricingRow(
                     context,
-                    AppLocalizations.of(context).discount,
-                    '$discount%',
-                  ),
-                  const Divider(height: 16, thickness: 0.5),
-                  _buildPricingRow(
-                    context,
                     AppLocalizations.of(context).tax,
-                    tax == 'None' ? tax : '$tax (\$$priceTax)',
+                    "${move['l10n_gcc_invoice_tax_amount']}",
+                    isBold: true,
+                    color: const Color(0xFF714B67),
                   ),
                   const Divider(height: 16, thickness: 0.5),
                   _buildPricingRow(

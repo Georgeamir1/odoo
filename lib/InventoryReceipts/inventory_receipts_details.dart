@@ -468,6 +468,12 @@ class _ActionSection extends StatelessWidget {
       await context
           .read<InventoryReceiptsDetailCubit>()
           .validateOrder(pickingId);
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const InventoryReceiptsPage(),
+        ),
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

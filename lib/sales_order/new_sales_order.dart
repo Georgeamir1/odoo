@@ -18,6 +18,7 @@ class _QuotationScreenState extends State<QuotationScreen> {
   final _expirationDateController = TextEditingController();
   final _dateController = TextEditingController();
   var customerId;
+  var payment_term_id;
   var pricelist;
 
   List<OrderLine> _orderLines = [OrderLine()];
@@ -59,8 +60,12 @@ class _QuotationScreenState extends State<QuotationScreen> {
         : [];
 
     setState(() {
-      _orderLines[index].unitPrice =
-          priceResult.isNotEmpty ? priceResult[0]["fixed_price"] ?? 0.0 : 0.0;
+      _orderLines[index].unitPrice = priceResult.isNotEmpty
+          ? priceResult[0]["fixed_price"] ?? // Use pricelist price if available
+              _orderLines[index]
+                  .selectedProductWithoutPricelist ?? // Fallback to default price
+              0.0 // Final fallback if both are null
+          : _orderLines[index].selectedProductWithoutPricelist ?? 0.0;
       if (taxResult.isNotEmpty) {
         _orderLines[index].taxAmount = taxResult[0]['amount'] ?? 0.0;
         _orderLines[index].taxId = taxResult[0]['id'];
@@ -75,19 +80,35 @@ class _QuotationScreenState extends State<QuotationScreen> {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider(create: (_) => PartnersCubit()..getPartners()),
+        BlocProvider(create: (_) => PartnersCubit()..getCustomers()),
         BlocProvider(create: (_) => ProductsCubit()..getProducts()),
         BlocProvider(create: (_) => SaleOrderCubit()),
       ],
       child: Scaffold(
         appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          iconTheme: const IconThemeData(color: Colors.white),
           title: Text(
             AppLocalizations.of(context).order,
-            style: const TextStyle(fontWeight: FontWeight.bold),
+            style: const TextStyle(color: Colors.white),
           ),
           centerTitle: true,
-          backgroundColor: const Color(0xFF714B67),
           elevation: 0,
+          flexibleSpace: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF714B67),
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(25),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+          ),
         ),
         body: Container(
           color: Colors.grey[50],
@@ -161,10 +182,34 @@ class _QuotationScreenState extends State<QuotationScreen> {
               final selected = state.partners
                   .firstWhere((e) => e['name'] == selection, orElse: () => {});
               if (selected.isNotEmpty) {
-                customerId = selected['id'].toString();
-                pricelist = selected['property_product_pricelist'][0];
+                // Capture new values before setState
+                final newCustomerId = selected['id'].toString();
+                final newCustomerName = selected['name'];
+
+                final newPricelist =
+                    selected['property_product_pricelist'] is List<dynamic>
+                        ? selected['property_product_pricelist'][0]
+                        : 0;
+                final oldPricelist = pricelist; // Store current pricelist
+
+                setState(() {
+                  customerId = newCustomerId;
+                  payment_term_id =
+                      selected['property_supplier_payment_term_id']
+                              is List<dynamic>
+                          ? selected['property_supplier_payment_term_id'][0]
+                          : 1;
+                  print("payment_term_id is : ${payment_term_id}");
+                  pricelist = newPricelist;
+
+                  // Clear order lines only if pricelist changed
+                  if (oldPricelist != newPricelist) {
+                    _orderLines = [OrderLine()]; // Reset to one empty line
+                  }
+                });
+
                 PartnersCubit.get(context)
-                    .setSelectedCustomer(customerId, selected['name']);
+                    .setSelectedCustomer(newCustomerId, newCustomerName);
               }
             },
             fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
@@ -209,17 +254,26 @@ class _QuotationScreenState extends State<QuotationScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Text(
+          AppLocalizations.of(context).order,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF714B67),
+          ),
+        ),
+        const SizedBox(height: 16),
+        ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: _orderLines.length,
+          itemBuilder: (context, index) {
+            return _buildOrderLine(index);
+          },
+        ),
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            Text(
-              AppLocalizations.of(context).order,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF714B67),
-              ),
-            ),
             TextButton.icon(
               icon: const Icon(Icons.add_circle, color: Color(0xFF00A09D)),
               label: Text(
@@ -237,12 +291,6 @@ class _QuotationScreenState extends State<QuotationScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 16),
-        ..._orderLines
-            .asMap()
-            .entries
-            .map((entry) => _buildOrderLine(entry.key))
-            .toList(),
       ],
     );
   }
@@ -253,27 +301,10 @@ class _QuotationScreenState extends State<QuotationScreen> {
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "Item #${index + 1}",
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF714B67),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, color: Colors.red),
-                  onPressed: () => setState(() => _orderLines.removeAt(index)),
-                ),
-              ],
-            ),
-            const Divider(),
             const SizedBox(height: 8),
             BlocBuilder<ProductsCubit, ProductsState>(
               builder: (context, state) {
@@ -293,6 +324,10 @@ class _QuotationScreenState extends State<QuotationScreen> {
                           (e) => e['name'] == selection);
                       setState(() {
                         _orderLines[index].selectedProduct = selection;
+                        _orderLines[index].selectedProductWithoutPricelist =
+                            selected['list_price'];
+                        print(
+                            _orderLines[index].selectedProductWithoutPricelist);
                         _orderLines[index].selectedProductTAX =
                             selected['taxes_id'].isNotEmpty
                                 ? selected['taxes_id'][0].toString()
@@ -307,26 +342,33 @@ class _QuotationScreenState extends State<QuotationScreen> {
                       if (_orderLines[index].selectedProduct != null) {
                         controller.text = _orderLines[index].selectedProduct!;
                       }
-                      return TextFormField(
-                        controller: controller,
-                        focusNode: focusNode,
-                        decoration: InputDecoration(
-                          labelText: AppLocalizations.of(context).product,
-                          labelStyle: const TextStyle(color: Color(0xFF714B67)),
-                          border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8)),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide:
-                                const BorderSide(color: Color(0xFFE0E0E0)),
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: TextFormField(
+                          controller: controller,
+                          focusNode: focusNode,
+                          decoration: InputDecoration(
+                            labelText: AppLocalizations.of(context).product,
+                            labelStyle:
+                                const TextStyle(color: Color(0xFF714B67)),
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8)),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  const BorderSide(color: Color(0xFFE0E0E0)),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  const BorderSide(color: Color(0xFF714B67)),
+                            ),
+                            prefixIcon: const Icon(Icons.inventory_2_outlined,
+                                color: Color(0xFF714B67)),
                           ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide:
-                                const BorderSide(color: Color(0xFF714B67)),
-                          ),
-                          prefixIcon: const Icon(Icons.inventory_2_outlined,
-                              color: Color(0xFF714B67)),
                         ),
                       );
                     },
@@ -337,49 +379,66 @@ class _QuotationScreenState extends State<QuotationScreen> {
               },
             ),
             const SizedBox(height: 16),
-            TextField(
-              decoration: InputDecoration(
-                labelText: AppLocalizations.of(context).quantity,
-                labelStyle: const TextStyle(color: Color(0xFF714B67)),
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: TextField(
+                      decoration: InputDecoration(
+                        labelText: AppLocalizations.of(context).quantity,
+                        labelStyle: const TextStyle(color: Color(0xFF714B67)),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide:
+                              const BorderSide(color: Color(0xFFE0E0E0)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide:
+                              const BorderSide(color: Color(0xFF714B67)),
+                        ),
+                      ),
+                      keyboardType: TextInputType.number,
+                      onChanged: (val) => setState(() =>
+                          _orderLines[index].quantity = double.tryParse(val)),
+                    ),
+                  ),
                 ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFF714B67)),
+                Container(
+                  height: 55,
+                  margin: const EdgeInsets.only(left: 12),
+                  decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Color(0xFFE0E0E0))),
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Text(
+                        '${_orderLines[index].unitPrice?.toStringAsFixed(2) ?? "0.00"}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
                 ),
-                prefixIcon: const Icon(Icons.numbers, color: Color(0xFF714B67)),
-              ),
-              keyboardType: TextInputType.number,
-              onChanged: (val) => setState(
-                  () => _orderLines[index].quantity = double.tryParse(val)),
+              ],
             ),
             const SizedBox(height: 16),
             Container(
               decoration: BoxDecoration(
-                color: Colors.grey[100],
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFE0E0E0)),
               ),
               padding: const EdgeInsets.all(12),
               child: Column(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        AppLocalizations.of(context).unit_price,
-                        style: const TextStyle(color: Color(0xFF714B67)),
-                      ),
-                      Text(
-                        '\$${_orderLines[index].unitPrice?.toStringAsFixed(2) ?? "0.00"}',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -404,7 +463,7 @@ class _QuotationScreenState extends State<QuotationScreen> {
                         style: TextStyle(color: Color(0xFF714B67)),
                       ),
                       Text(
-                        '\$${_orderLines[index].totalPrice.toStringAsFixed(2)}',
+                        '${_orderLines[index].totalPrice.toStringAsFixed(2)}',
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ],
@@ -418,13 +477,22 @@ class _QuotationScreenState extends State<QuotationScreen> {
                         style: TextStyle(color: Color(0xFF714B67)),
                       ),
                       Text(
-                        '\$${_orderLines[index].totalPriceWithTax.toStringAsFixed(2)}',
+                        '${_orderLines[index].totalPriceWithTax.toStringAsFixed(2)}',
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
                 ],
               ),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                  onPressed: () => setState(() => _orderLines.removeAt(index)),
+                ),
+              ],
             ),
           ],
         ),
@@ -460,7 +528,7 @@ class _QuotationScreenState extends State<QuotationScreen> {
                   style: const TextStyle(fontSize: 16),
                 ),
                 Text(
-                  '\$${_calculateTotalPrice().toStringAsFixed(2)}',
+                  '${_calculateTotalPrice().toStringAsFixed(2)}',
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -481,7 +549,7 @@ class _QuotationScreenState extends State<QuotationScreen> {
                   ),
                 ),
                 Text(
-                  '\$${_calculateTotalPriceWithTaxes().toStringAsFixed(2)}',
+                  '${_calculateTotalPriceWithTaxes().toStringAsFixed(2)}',
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -497,107 +565,117 @@ class _QuotationScreenState extends State<QuotationScreen> {
   }
 
   Widget _buildActionButtonsBar() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 4,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-                side: const BorderSide(color: Color(0xFF714B67)),
+    return Builder(
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+/*
+            color: Colors.white,
+*/
+              /*   boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 4,
+                offset: const Offset(0, -2),
               ),
-            ),
-            child: Text(
-              AppLocalizations.of(context).cancel,
-              style: const TextStyle(color: Color(0xFF714B67)),
-            ),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF714B67),
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
-            onPressed: () async {
-              try {
-                if (customerId == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(AppLocalizations.of(context)
-                          .Please_select_a_customer_and_payment_term),
-                      backgroundColor: Colors.red[700],
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                    ),
-                  );
-                  return;
-                }
-
-                final orderData = {
-                  "partner_id": int.tryParse(customerId.toString()) ?? 0,
-                  "payment_term_id": 1,
-                  "order_line": _orderLines
-                      .map((line) => [
-                            0,
-                            0,
-                            {
-                              "product_id": line.productId,
-                              "product_uom_qty": line.quantity,
-                              "price_unit": line.unitPrice,
-                              "tax_id": [line.taxId],
-                            }
-                          ])
-                      .toList(),
-                };
-
-                await SaleOrderCubit.get(context)
-                    .createAndConfirmSaleOrder(orderData);
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const SaleOrderPage()));
-              } catch (e) {
-                print('Error: $e');
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Error: $e'),
-                    backgroundColor: Colors.red[700],
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
+            ],*/
+              ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              TextButton(
+                  child: Text(
+                    AppLocalizations.of(context).cancel,
+                    style: const TextStyle(color: Color(0xFF714B67)),
                   ),
-                );
-              }
-            },
-            child: Text(AppLocalizations.of(context).save,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                )),
+                  onPressed: () => Navigator.pop(context),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      side: const BorderSide(color: Color(0xFF714B67)),
+                    ),
+                  )),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF714B67),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: () async {
+                  try {
+                    if (customerId == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(AppLocalizations.of(context)
+                              .Please_select_a_customer_and_payment_term),
+                          backgroundColor: Colors.red[700],
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
+                        ),
+                      );
+                      return;
+                    }
+
+                    final orderData = {
+                      "partner_id": int.tryParse(customerId.toString()) ?? 0,
+                      "payment_term_id": payment_term_id,
+                      "order_line": _orderLines
+                          .map((line) => [
+                                0,
+                                0,
+                                {
+                                  "product_id": line.productId,
+                                  "product_uom_qty": line.quantity,
+                                  "price_unit": line.unitPrice,
+                                  "tax_id": [line.taxId],
+                                }
+                              ])
+                          .toList(),
+                    };
+
+                    await BlocProvider.of<SaleOrderCubit>(context)
+                        .createAndConfirmSaleOrder(orderData);
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const SaleOrderPage()));
+                  } catch (e) {
+                    print('Error: $e');
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error: $e'),
+                        backgroundColor: Colors.red[700],
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                    );
+                  }
+                },
+                child: Text(AppLocalizations.of(context).save,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    )),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
 
 class OrderLine {
   String? selectedProduct;
+  double? selectedProductWithoutPricelist;
   String? selectedProductTAX;
   int? productId;
   int? PriceProductId;
@@ -606,6 +684,7 @@ class OrderLine {
   int? unitId;
   double? unitPrice;
   int? taxId;
+  int? payment_term_id;
   double? taxAmount = 0.0;
 
   double get totalPrice => (quantity ?? 0) * (unitPrice ?? 0);

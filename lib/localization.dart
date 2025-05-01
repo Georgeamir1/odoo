@@ -13,6 +13,16 @@ class AppLocalizations {
   static final Map<String, Map<String, String>> _localizedValues = {
     'en': {
       'username': 'Username',
+      'invoicesdetails': 'Invoices Details',
+      'created_successfully': 'Created Successfully',
+      'createPayment': 'Create Payment',
+      'paymentCreatedSuccess': 'payment Created Successfully',
+      'paymentError': 'payment Error',
+      'immediatePayment': 'immediate',
+      'Immediate': 'Immediate',
+      'invoices': 'invoices',
+      'retry': 'Retry',
+      'sales_Order_details': 'Sales order details',
       'no_tax_applied': 'No taxes applied',
       'sales': 'Sales',
       'subtotal': 'subtotal',
@@ -114,6 +124,15 @@ class AppLocalizations {
     },
     'ar': {
       'upselling_opportunity': 'فرصه الارتقاء بالصفقه',
+      'invoicesdetails': 'تفاصيل الفتورة',
+      'created_successfully': 'تم الإنشاء بنجاح',
+      'paymentCreatedSuccess': 'تم انشاء الدفع بنجاح',
+      'immediatePayment': 'فوري',
+      'createPayment': 'إنشاء دفع',
+      'paymentError': 'خطأ في الدفع',
+      'invoices': 'الفواتير',
+      'retry': 'اعد المحاوله',
+      'sales_Order_details': 'تفاصيل طلب المبيعات',
       'no_tax_applied': 'لا يوجد ضرا]ب مضافه',
       'sales': 'المندوب',
       'subtotal': 'المجموع الفرعي',
@@ -209,6 +228,7 @@ class AppLocalizations {
       'receipt_lines': 'بنود الإيصال',
       'select_customer_and_lines': 'الرجاء تحديد عميل وإضافة بنود الطلب',
       'invalid_order_line': 'بند طلب غير صالح',
+      'Immediate': 'فوري',
     },
   };
 
@@ -222,6 +242,14 @@ class AppLocalizations {
 
   // Getters for translations
   String get username => _translate('username');
+  String get created_successfully => _translate('created_successfully');
+  String get paymentError => _translate('paymentError');
+  String get createPayment => _translate('createPayment');
+  String get paymentCreatedSuccess => _translate('paymentCreatedSuccess');
+  String get immediate => _translate('immediatePayment');
+  String get invoices => _translate('invoices');
+  String get invoicesdetails => _translate('invoicesdetails');
+  String get retry => _translate('retry');
   String get no_tax_applied => _translate('no_tax_applied');
   String get sales => _translate('sales');
   String get total => _translate('total');
@@ -243,6 +271,7 @@ class AppLocalizations {
   String get scheduledDate => _translate('scheduled_date');
   String get deadline => _translate('deadline');
   String get sourceDocument => _translate('source_document');
+  String get Immediate => _translate('Immediate');
   String get operationType => _translate('operation_type');
   String get products => _translate('products');
   String get unknownProduct => _translate('unknown_product');
@@ -284,6 +313,7 @@ class AppLocalizations {
   String get inventoryReceipts => _translate('inventory_receipts');
   String get inventory_receipts_details =>
       _translate('inventory_receipts_details');
+  String get salesOrderDetails => _translate('sales_Order_details');
   String get logout => _translate('logout');
   String get customer => _translate('customer');
   String get payment_terms => _translate('payment_terms');

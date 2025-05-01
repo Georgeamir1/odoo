@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:odoo/sales_order/sales_order_status.dart';
-import '../InventoryReceipts/new_inventory_receipt.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../networking/odoo_service.dart';
 
 class PartnersCubit extends Cubit<PartnersState> {
@@ -10,7 +10,7 @@ class PartnersCubit extends Cubit<PartnersState> {
   PartnersCubit() : super(PartnersLoadingState());
   static PartnersCubit get(context) => BlocProvider.of(context);
 
-  void getPartners() async {
+  void getCustomers() async {
     emit(
         PartnersLoadingState()); // Emit loading state before starting the request
     try {
@@ -18,9 +18,40 @@ class PartnersCubit extends Cubit<PartnersState> {
         "res.partner",
         [
           ["active", "=", true],
-          ["customer_rank", "=", "1"]
+          ["customer_rank", ">", "0"]
         ],
-        ["name", "email", "id", "property_product_pricelist"],
+        [
+          "name",
+          "email",
+          "id",
+          "property_product_pricelist",
+          "property_supplier_payment_term_id"
+        ],
+      );
+      emit(PartnersLoadedState(partners)); // Emit success state with partners
+    } catch (e) {
+      emit(PartnersErrorState(
+          e.toString())); // Emit error state if something goes wrong
+    }
+  }
+
+  void getsuppliers() async {
+    emit(
+        PartnersLoadingState()); // Emit loading state before starting the request
+    try {
+      List<dynamic> partners = await odooService.fetchRecords(
+        "res.partner",
+        [
+          ["active", "=", true],
+          ["supplier_rank", ">", 0]
+        ],
+        [
+          "name",
+          "email",
+          "id",
+          "property_product_pricelist",
+          "property_supplier_payment_term_id"
+        ],
       );
       emit(PartnersLoadedState(partners)); // Emit success state with partners
     } catch (e) {
@@ -68,6 +99,7 @@ class ProductsCubit extends Cubit<ProductsState> {
         "qty_available",
         "product_variant_ids",
         "taxes_id",
+        "display_name",
       ]);
       emit(ProductsLoadedState(Products)); // Emit success state with Products
     } catch (e) {
@@ -245,10 +277,13 @@ class SaleOrderCubit extends Cubit<SaleOrderState> {
   Future<void> fetchSaleOrder() async {
     try {
       emit(SaleOrderLoading());
+      final prefs = await SharedPreferences.getInstance();
 
       final orders = await odooService.fetchRecords(
         'sale.order',
-        [],
+        [
+          ["user_id", "=", "${prefs.getString('username')}"],
+        ],
         [
           'invoice_status',
           'amount_total',
@@ -311,6 +346,33 @@ class SaleOrderCubit extends Cubit<SaleOrderState> {
     }
   }
 
+  Future<void> createAndConfirmDeliveryOrder(
+      Map<String, dynamic> orderData) async {
+    try {
+      emit(SaleOrderLoading());
+      final pickingId =
+          await odooService.createRecord("stock.picking", orderData);
+
+      if (pickingId != null) {
+        // 3. Mark as done
+        await odooService.client.callKw({
+          'model': 'stock.picking',
+          'method': 'button_validate',
+          'args': [
+            [pickingId]
+          ],
+          'kwargs': {}
+        });
+
+        emit(SaleOrderSuccess(pickingId));
+      } else {
+        emit(SaleOrderError("Failed to create delivery order"));
+      }
+    } catch (e) {
+      emit(SaleOrderError("Delivery order creation failed: ${e.toString()}"));
+    }
+  }
+
   Future<void> createAndConfirmSaleOrder(Map<String, dynamic> orderData) async {
     try {
       emit(SaleOrderLoading());
@@ -324,8 +386,13 @@ class SaleOrderCubit extends Cubit<SaleOrderState> {
           'args': [
             [saleOrderId]
           ],
-          'kwargs': {}
+          'kwargs': {
+            'context': {
+              "validate_analytic": true,
+            }
+          },
         });
+
         emit(SaleOrderSuccess(saleOrderId));
         await fetchSaleOrder(); // Refresh the list
       } else {
@@ -336,90 +403,54 @@ class SaleOrderCubit extends Cubit<SaleOrderState> {
     }
   }
 
-  Future<void> createInventoryReceipt(Map<String, dynamic> pickingData) async {
+  Future<void> createInventoryReceipt(Map<String, dynamic> data) async {
     try {
-      emit(SaleOrderLoading());
-      final receiptId =
-          await odooService.createRecord("stock.picking", pickingData);
-
-      if (receiptId != null) {
-        await odooService.client.callKw({
-          'model': 'stock.picking',
-          'method': 'button_validate',
-          'args': [
-            [receiptId]
-          ],
-          'kwargs': {}
-        });
-        emit(SaleOrderSuccess(receiptId));
-        await fetchSaleOrder(); // Refresh the list
-      } else {
-        emit(SaleOrderError("Failed to create inventory receipt"));
-      }
-    } catch (e) {
-      emit(SaleOrderError("Receipt creation failed: ${e.toString()}"));
-    }
-  }
-
-  Future<void> createAndConfirmStockPicking({
-    required int partnerId,
-    required int pickingTypeId,
-    required int locationId,
-    required int locationDestId,
-    required List<OrderLine> orderLines,
-  }) async {
-    try {
-      emit(SaleOrderLoading());
-      final moveIds = orderLines.map((line) {
-        if (line.productId == null ||
-            line.quantity == null ||
-            line.unitId == null) {
-          throw Exception("Invalid order line data");
-        }
-        return [
-          0,
-          0,
-          {
-            "name": line.selectedProduct ?? "Product",
-            "product_id": line.productId,
-            "product_uom_qty": line.quantity,
-            "product_uom": line.unitId,
-            "location_id": locationId,
-            "location_dest_id": locationDestId,
-          }
-        ];
-      }).toList();
-
-      final pickingId = await odooService.client.callKw({
+      final saleOrderId = await odooService.client.callKw({
         'model': 'stock.picking',
         'method': 'create',
-        'args': [
-          {
-            "partner_id": partnerId,
-            "picking_type_id": pickingTypeId,
-            "location_id": locationId,
-            "location_dest_id": locationDestId,
-            "move_ids_without_package": moveIds,
-          }
-        ],
+        'args': [data],
         'kwargs': {},
       });
+      print(saleOrderId);
+      if (saleOrderId != null) {
+        await odooService.client.callKw({
+          'model': 'stock.picking',
+          'method': 'action_confirm',
+          'args': [
+            [saleOrderId]
+          ],
+          'kwargs': {
+            'context': {
+              "validate_analytic": true,
+            }
+          },
+        });
 
-      await odooService.client.callKw({
-        'model': 'stock.picking',
-        'method': 'action_confirm',
-        'args': [
-          [pickingId]
-        ],
-        'kwargs': {},
-      });
-
-      emit(SaleOrderSuccess(pickingId));
-      await fetchSaleOrder(); // Refresh the list
+        emit(SaleOrderSuccess(saleOrderId));
+        await fetchSaleOrder(); // Refresh the list
+      }
     } catch (e) {
-      emit(SaleOrderError("Picking creation failed: ${e.toString()}"));
+      throw Exception('Failed to create inventory receipt: $e');
     }
   }
+/*
+  Future<void> createInventoryReceipt(Map<String, dynamic> orderData) async {
+    try {
+      emit(SaleOrderLoading());
+      final saleOrderId =
+          await odooService.createRecord("sale.order", orderData);
+
+      if (saleOrderId != null) {
+        emit(SaleOrderSuccess(saleOrderId));
+        await fetchSaleOrder(); // Refresh the list
+      } else {
+        emit(SaleOrderError("Failed to create sale order"));
+      }
+    } catch (e) {
+      emit(SaleOrderError("Order creation failed: ${e.toString()}"));
+    }
+  }
+*/
 }
 
 class SaleOrderdetailsCubit extends Cubit<SaleOrderdetailsState> {
@@ -428,8 +459,6 @@ class SaleOrderdetailsCubit extends Cubit<SaleOrderdetailsState> {
 
   SaleOrderdetailsCubit(this.odooService) : super(SaleOrderdetailsLoading());
   List<dynamic> allOrders = []; // Original unfiltered orders list
-
-  /// Fetches delivery orders from Odoo and enriches each order with move details.
 
   Future<void> fetchDetail(int pickingId) async {
     emit(SaleOrderdetailsLoading());

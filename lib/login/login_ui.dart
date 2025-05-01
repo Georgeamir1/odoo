@@ -87,7 +87,7 @@ class _LoginPageState extends State<LoginPage> {
                       children: [
                         // Logo
                         Image.asset(
-                          "assets/images/logo.png",
+                          "assets/images/logo inside.png",
                           height: 300,
                         ),
                         // Login Card
@@ -182,7 +182,21 @@ class _LoginPageState extends State<LoginPage> {
                                       return null;
                                     },
                                   ),
-                                  const SizedBox(height: 24),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.start,
+                                    children: [
+                                      Padding(
+                                        padding: const EdgeInsets.all(4.0),
+                                        child: Text(
+                                          "PS 17 25",
+                                          style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.black38),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 18),
                                   SizedBox(
                                     width: double.infinity,
                                     child: ElevatedButton(
@@ -283,6 +297,9 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ],
                         ),
+/*
+                        WeekNumberDisplay()
+*/
                       ],
                     ),
                   ),

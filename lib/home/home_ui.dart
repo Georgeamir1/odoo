@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../InventoryReceipts/inventory_receipts_ui.dart';
 import '../delivery_order/delivery_order_ui.dart';
+import '../delivery_order/new_delivery_order.dart';
+import '../invoicing/invoicing_list.dart';
 import '../localization.dart';
 import '../login/login_ui.dart';
 import '../networking/odoo_service.dart';
@@ -140,6 +142,18 @@ class HomePage extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                           builder: (context) => DeliveryOrderPage()),
+                    );
+                  },
+                ),
+                _buildOptionCard(
+                  context: context,
+                  titleKey: AppLocalizations.of(context).invoices,
+                  icon: Icons.receipt_sharp,
+                  backgroundColor: const Color(0xFFE8F5E9),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => invoicingPage()),
                     );
                   },
                 ),

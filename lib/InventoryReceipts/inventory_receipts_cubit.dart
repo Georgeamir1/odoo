@@ -4,7 +4,6 @@ import '../networking/odoo_service.dart'; // Your Odoo RPC service
 import 'inventory_receipts_status.dart'; // Contains InventoryReceiptsState classes
 
 class InventoryReceiptsCubit extends Cubit<InventoryReceiptsState> {
-
   InventoryReceiptsCubit() : super(InventoryReceiptsInitial());
   static InventoryReceiptsCubit get(context) => BlocProvider.of(context);
   final OdooRpcService odooService = OdooRpcService();
@@ -18,7 +17,11 @@ class InventoryReceiptsCubit extends Cubit<InventoryReceiptsState> {
       final orders = await odooService.fetchRecords(
         'stock.picking', // Model name
         [
-          ['picking_type_id.code', '=', 'incoming'] // Filter for outgoing deliveries
+          [
+            'picking_type_id.code',
+            '=',
+            'incoming'
+          ] // Filter for outgoing deliveries
         ],
         [
           'id',
@@ -33,8 +36,8 @@ class InventoryReceiptsCubit extends Cubit<InventoryReceiptsState> {
 
       // Reverse the list to show the most recent orders first and limit to 50 for performance
       allOrders = List<Map<String, dynamic>>.from(orders.reversed.take(50));
-      List<Map<String, dynamic>> initialOrders = await _fetchMoveDetails(
-          allOrders.take(5).toList());
+      List<Map<String, dynamic>> initialOrders =
+          await _fetchMoveDetails(allOrders.take(5).toList());
 
       emit(InventoryReceiptsLoaded(initialOrders));
     } catch (e) {
@@ -42,12 +45,15 @@ class InventoryReceiptsCubit extends Cubit<InventoryReceiptsState> {
       emit(InventoryReceiptsError("Failed to fetch delivery orders: $e"));
     }
   }
-  Future<List<Map<String, dynamic>>> _fetchMoveDetails(List<Map<String, dynamic>> orders) async {
+
+  Future<List<Map<String, dynamic>>> _fetchMoveDetails(
+      List<Map<String, dynamic>> orders) async {
     List<Map<String, dynamic>> enrichedOrders = [];
 
     for (var order in orders) {
       // Fetch move details for the order
-      final moves = await odooService.fetchMoves(order['move_ids_without_package']);
+      final moves =
+          await odooService.fetchMoves(order['move_ids_without_package']);
 
       // Enrich the order with move details
       enrichedOrders.add({
@@ -63,6 +69,7 @@ class InventoryReceiptsCubit extends Cubit<InventoryReceiptsState> {
 
     return enrichedOrders;
   }
+
   Future<void> updateDeliveryStatus(int id, String status) async {
     emit(InventoryReceiptsLoading());
     try {
@@ -100,6 +107,7 @@ class InventoryReceiptsCubit extends Cubit<InventoryReceiptsState> {
       emit(InventoryReceiptsError("Error updating order: $e"));
     }
   }
+
   void loadMore() async {
     if (state is InventoryReceiptsLoaded && currentLength < allOrders.length) {
       int newLength = currentLength + 5;
@@ -110,6 +118,7 @@ class InventoryReceiptsCubit extends Cubit<InventoryReceiptsState> {
           [...((state as InventoryReceiptsLoaded).orders), ...newOrders]));
     }
   }
+
   void filterOrders(String query) {
     // If the query is "all", return all orders.
     if (query.toLowerCase() == 'all') {
@@ -135,13 +144,14 @@ class InventoryReceiptsCubit extends Cubit<InventoryReceiptsState> {
       emit(InventoryReceiptsError("Error filtering orders: $e"));
     }
   }
+
   Future<void> validateOrder(int pickingId,
       {required bool createBackorder, dynamic fallbackOrder}) async {
     emit(InventoryReceiptsLoading());
     try {
       // Try to find the order in the cached list, or use fallbackOrder if not found.
       final orderFound = allOrders.firstWhere(
-            (o) => o['id'] == pickingId,
+        (o) => o['id'] == pickingId,
         orElse: () => fallbackOrder,
       );
       if (orderFound == null) {
@@ -150,7 +160,7 @@ class InventoryReceiptsCubit extends Cubit<InventoryReceiptsState> {
 
       // Get moves from detailed moves if available; otherwise, fallback.
       List<dynamic> moves = (orderFound['moves_details'] is List &&
-          orderFound['moves_details'].isNotEmpty)
+              orderFound['moves_details'].isNotEmpty)
           ? orderFound['moves_details']
           : orderFound['move_ids_without_package'];
 
@@ -256,11 +266,13 @@ class InventoryReceiptsCubit extends Cubit<InventoryReceiptsState> {
     }
   }
 }
+
 class InventoryReceiptsDetailCubit extends Cubit<InventoryReceiptsDetailState> {
   final OdooRpcService odooService;
   static InventoryReceiptsDetailCubit get(context) => BlocProvider.of(context);
 
-  InventoryReceiptsDetailCubit(this.odooService) : super(InventoryReceiptsDetailLoading());
+  InventoryReceiptsDetailCubit(this.odooService)
+      : super(InventoryReceiptsDetailLoading());
   List<dynamic> allOrders = []; // Original unfiltered orders list
 
   /// Fetches delivery orders from Odoo and enriches each order with move details.
@@ -283,7 +295,6 @@ class InventoryReceiptsDetailCubit extends Cubit<InventoryReceiptsDetailState> {
           'picking_type_id',
           'move_ids_without_package',
           'products_availability',
-
         ],
       );
 
@@ -295,7 +306,8 @@ class InventoryReceiptsDetailCubit extends Cubit<InventoryReceiptsDetailState> {
       final picking = result.first;
 
       // 2) Fetch move details
-      final moves = await odooService.fetchMoves(picking['move_ids_without_package']);
+      final moves =
+          await odooService.fetchMoves(picking['move_ids_without_package']);
 
       // 3) Create a combined map of picking + moves
       final detail = {
@@ -309,18 +321,22 @@ class InventoryReceiptsDetailCubit extends Cubit<InventoryReceiptsDetailState> {
         'moves': moves,
       };
 
-      emit(InventoryReceiptsDetailLoaded(detail,picking));
+      emit(InventoryReceiptsDetailLoaded(detail, picking));
     } catch (e) {
-      emit(InventoryReceiptsDetailError('Failed to fetch delivery order details: $e'));
+      emit(InventoryReceiptsDetailError(
+          'Failed to fetch delivery order details: $e'));
     }
   }
+
   Future<void> validateOrder(int pickingId) async {
     try {
       print('⏳ Validating order ID: $pickingId');
       final result = await odooService.callKw({
         'model': 'stock.picking',
         'method': 'button_validate',
-        'args': [[pickingId]],
+        'args': [
+          [pickingId]
+        ],
         'kwargs': {},
       });
 
@@ -332,7 +348,7 @@ class InventoryReceiptsDetailCubit extends Cubit<InventoryReceiptsDetailState> {
         print('✅ Validation successful - no backorder needed');
         emit(InventoryReceiptsvalidationSuccess());
         await fetchDetail(pickingId);
-        emit(NavigateToInventoryReceiptsPage());  // Emit navigation state
+        emit(NavigateToInventoryReceiptsPage()); // Emit navigation state
       } else if (result is Map<String, dynamic>) {
         print('⚠️ Backorder wizard detected');
         final wizardId = result['res_id'];
@@ -340,7 +356,8 @@ class InventoryReceiptsDetailCubit extends Cubit<InventoryReceiptsDetailState> {
         // Handle backorder wizard here
       } else {
         print('❌ Unexpected response format');
-        emit(InventoryReceiptsvalidationError('Unexpected validation response: $result'));
+        emit(InventoryReceiptsvalidationError(
+            'Unexpected validation response: $result'));
       }
     } catch (e, stackTrace) {
       print('‼️ Validation Error:');
@@ -349,6 +366,7 @@ class InventoryReceiptsDetailCubit extends Cubit<InventoryReceiptsDetailState> {
       emit(InventoryReceiptsvalidationError('Error validating order: $e'));
     }
   }
+
   Future<void> validate_without_backOrder(int pickingId) async {
     try {
       final result = await odooService.callKw({
@@ -372,8 +390,7 @@ class InventoryReceiptsDetailCubit extends Cubit<InventoryReceiptsDetailState> {
         emit(NoBackOrderValidationSuccess());
         // إعادة تحميل البيانات لتحديث الواجهة
         await fetchDetail(pickingId); // تأكد من تعريف originalPickingId
-        emit(NavigateToInventoryReceiptsPage());  // Emit navigation state
-
+        emit(NavigateToInventoryReceiptsPage()); // Emit navigation state
       } else {
         print("❌ فشل الإلغاء - الرد غير متوقع: $result");
         emit(NoBackOrderValidationError('فشل الإلغاء: $result'));
@@ -385,6 +402,7 @@ class InventoryReceiptsDetailCubit extends Cubit<InventoryReceiptsDetailState> {
       emit(NoBackOrderValidationError('خطأ تقني: $e'));
     }
   }
+
   Future<void> validate_With_BackOrder(int backorderConfirmationId) async {
     try {
       print('⏳ Validating WITH backorder, Wizard ID: $backorderConfirmationId');
@@ -408,11 +426,11 @@ class InventoryReceiptsDetailCubit extends Cubit<InventoryReceiptsDetailState> {
       if (result == true) {
         print('✅ Backorder created successfully');
         emit(BackOrderValidationSuccess());
-        emit(NavigateToInventoryReceiptsPage());  // Emit navigation state
-
+        emit(NavigateToInventoryReceiptsPage()); // Emit navigation state
       } else {
         print('❌ Backorder creation failed');
-        emit(BackOrderValidationError('Backorder validation failed. Response: $result'));
+        emit(BackOrderValidationError(
+            'Backorder validation failed. Response: $result'));
       }
     } catch (e, stackTrace) {
       print('‼️ With Backorder Error:');

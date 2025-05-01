@@ -1,24 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lottie/lottie.dart';
+import 'package:odoo/invoicing/invoicing_cubit.dart';
+import 'package:odoo/invoicing/invoicing_status.dart';
 import 'package:odoo/sales_order/sales_order_cubit.dart';
 import 'package:odoo/sales_order/sales_order_status.dart';
 import 'package:odoo/sales_order/new_sales_order.dart';
 
 import '../home/home_ui.dart';
-import '../sales_order/widgets.dart';
+import '../invoicing/widgets.dart';
 import '../localization.dart';
 
-class SaleOrderPage extends StatelessWidget {
-  const SaleOrderPage({super.key});
+class invoicingPage extends StatelessWidget {
+  const invoicingPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => SaleOrderCubit()..fetchSaleOrder(),
-      child: BlocConsumer<SaleOrderCubit, SaleOrderState>(
+      create: (context) => invoicingCubit()..fetchinvoicing(),
+      child: BlocConsumer<invoicingCubit, invoicingState>(
         listener: (context, state) {
-          if (state is SaleOrderError) {
+          if (state is invoicingError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(state.message)),
             );
@@ -61,7 +63,7 @@ class SaleOrderPage extends StatelessWidget {
                     backgroundColor: Colors.transparent,
                     iconTheme: IconThemeData(color: Colors.white),
                     title: Text(
-                      AppLocalizations.of(context).order,
+                      AppLocalizations.of(context).invoices,
                       style: TextStyle(color: Colors.white, fontSize: 20),
                     ),
                     actions: [
@@ -73,7 +75,7 @@ class SaleOrderPage extends StatelessWidget {
                         onPressed: () => showSearch(
                           context: context,
                           delegate:
-                              SaleOrderSearch(SaleOrderCubit.get(context)),
+                              invoicingSearch(invoicingCubit.get(context)),
                         ),
                       ),
                       buildFilterMenu(context),
@@ -83,18 +85,18 @@ class SaleOrderPage extends StatelessWidget {
               ),
               body: RefreshIndicator(
                 onRefresh: () async =>
-                    SaleOrderCubit.get(context).fetchSaleOrder(),
-                child: BlocBuilder<SaleOrderCubit, SaleOrderState>(
+                    invoicingCubit.get(context).fetchinvoicing(),
+                child: BlocBuilder<invoicingCubit, invoicingState>(
                   builder: (context, state) {
-                    if (state is SaleOrderLoading) {
+                    if (state is invoicingLoading) {
                       return Center(
                           child: Lottie.asset('assets/images/loading4.json',
                               height: 200, width: 200));
                     }
-                    if (state is SaleOrderError) {
+                    if (state is invoicingError) {
                       return Center(child: Text(state.message));
                     }
-                    if (state is SaleOrderLoaded) {
+                    if (state is invoicingLoaded) {
                       return Stack(
                         alignment: Alignment
                             .bottomRight, // Positions the FAB in the bottom right.
@@ -103,41 +105,47 @@ class SaleOrderPage extends StatelessWidget {
                           buildOrderList(
                             context,
                             state.orders,
-                            () => context.read<SaleOrderCubit>().loadMore(),
+                            () => context.read<invoicingCubit>().loadMore(),
                           ),
-
-                          Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                FloatingActionButton.extended(
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => QuotationScreen(),
-                                      ),
-                                    );
-                                  },
-                                  label: Text(
-                                    AppLocalizations.of(context).new_order,
-                                    style: TextStyle(color: Colors.white),
+                          if (state.orders.length <
+                              context
+                                  .read<invoicingCubit>()
+                                  .filteredOrders
+                                  .length)
+                            Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  FloatingActionButton.extended(
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              QuotationScreen(),
+                                        ),
+                                      );
+                                    },
+                                    label: Text(
+                                      AppLocalizations.of(context).new_order,
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                    backgroundColor: Color(0xFF714B67),
                                   ),
-                                  backgroundColor: Color(0xFF714B67),
-                                ),
-                                /*  FloatingActionButton.extended(
+                                  /*  FloatingActionButton.extended(
                                     onPressed: () =>
-                                        context.read<SaleOrderCubit>().loadMore(),
+                                        context.read<invoicingCubit>().loadMore(),
                                     label: Text(
                                       AppLocalizations.of(context).load_more,
                                       style: TextStyle(color: Colors.white),
                                     ),
                                     backgroundColor: Color(0xFF714B67),
                                   ),*/
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
                         ],
                       );
                     }
@@ -153,10 +161,10 @@ class SaleOrderPage extends StatelessWidget {
   }
 }
 
-class SaleOrderSearch extends SearchDelegate {
-  final SaleOrderCubit cubit;
+class invoicingSearch extends SearchDelegate {
+  final invoicingCubit cubit;
 
-  SaleOrderSearch(this.cubit);
+  invoicingSearch(this.cubit);
 
   @override
   List<Widget> buildActions(BuildContext context) => [
@@ -181,12 +189,12 @@ class SaleOrderSearch extends SearchDelegate {
     // Use BlocProvider.value to use the existing cubit instance.
     return BlocProvider.value(
       value: cubit,
-      child: BlocConsumer<SaleOrderCubit, SaleOrderState>(
+      child: BlocConsumer<invoicingCubit, invoicingState>(
         listener: (context, state) {
           // Optionally handle side-effects.
         },
         builder: (context, state) {
-          if (state is SaleOrderLoaded) {
+          if (state is invoicingLoaded) {
             if (state.orders.isEmpty) {
               return const Center(child: Text("No matching orders found"));
             }
@@ -201,14 +209,16 @@ class SaleOrderSearch extends SearchDelegate {
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(state.orders[index]['partner_id'][1].toString()),
+                      Text(state.orders[index]['partner_id'] == false
+                          ? 'N/A'
+                          : state.orders[index]['partner_id'][1].toString()),
                       Text(state.orders[index]['create_date']),
                     ],
                   ),
                 );
               },
             );
-          } else if (state is SaleOrderError) {
+          } else if (state is invoicingError) {
             return Center(child: Text(state.message));
           }
           return Center(

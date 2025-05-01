@@ -6,22 +6,48 @@ class OdooRpcService {
   factory OdooRpcService() => _instance;
   OdooRpcService._internal();
 
-  final OdooClient client = OdooClient("https://elmasa-eg.com");
+  final OdooClient client = OdooClient("https://elmasa-eg.com/");
   String _dbName = "testIV";
   int? _userId;
   String? _sessionId;
 
   /// **1. Login to Odoo**
-  Future<bool> login(String username, String password) async {
+  Future<int?> login(String username, String password) async {
     try {
       final response = await client.authenticate(_dbName, username, password);
       _userId = response.userId;
       _sessionId = response.id;
       print("Login successful! User ID: $_userId");
-      return true;
+
+      // Fetch the partner_id
+      final userData = await client.callKw({
+        'model': 'res.users',
+        'method': 'search_read',
+        'args': [
+          [
+            ['id', '=', _userId]
+          ]
+        ],
+        'kwargs': {
+          'fields': ['partner_id'],
+          'limit': 1,
+        },
+      });
+
+      if (userData != null && userData.isNotEmpty) {
+        final partner = userData[0]['partner_id'];
+        if (partner is List && partner.isNotEmpty) {
+          final partnerId = partner[0];
+          print("Retrieved partner ID: $partnerId");
+          return partnerId;
+        }
+      }
+
+      print("Partner ID not found for user.");
+      return null;
     } catch (e) {
       print("Login failed: $e");
-      return false;
+      return null;
     }
   }
 

@@ -6,7 +6,7 @@ import 'package:odoo/InventoryReceipts/inventory_receipts_details.dart';
 import 'package:odoo/sales_order/sales_order_cubit.dart';
 import 'package:odoo/invoicing/invoicing_details.dart';
 import '../localization.dart';
-import 'sales_order_details.dart';
+import 'invoicing_cubit.dart';
 
 Widget buildOrderList(
     BuildContext context, List<dynamic> orders, Function loadMore) {
@@ -63,17 +63,15 @@ Widget buildOrderCard(BuildContext context, dynamic order) {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: getStatusColor(order['invoice_status'])
-                        .withOpacity(0.2),
+                    color: getStatusColor(order['state']).withOpacity(0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    getStatusname(
-                        context, order['invoice_status']), // Pass context here
+                    getStatusname(context, order['state']), // Pass context here
                     style: GoogleFonts.poppins(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: getStatusColor(order['invoice_status']),
+                      color: getStatusColor(order['state']),
                     ),
                   ),
                 ),
@@ -98,10 +96,10 @@ Widget buildOrderCard(BuildContext context, dynamic order) {
             const SizedBox(height: 12),
             // Progress Bar
             LinearProgressIndicator(
-              value: _getsalesOrderProgress(order['invoice_status']),
+              value: _getsalesOrderProgress(order['state']),
               backgroundColor: Colors.grey.shade200,
               valueColor: AlwaysStoppedAnimation<Color>(
-                getStatusColor(order['invoice_status']),
+                getStatusColor(order['state']),
               ),
               minHeight: 6,
             ),
@@ -147,15 +145,11 @@ Widget _buildDetailRow(IconData icon, String label, String value) {
 
 Color getStatusColor(String state) {
   switch (state) {
-    case 'no':
+    case 'draft':
       return OdooColors.draft;
-    case 'to invoice':
-      return OdooColors.ready;
-    case 'invoiced':
+    case 'posted':
       return OdooColors.success;
-    case 'upselling':
-      return OdooColors.warning;
-    case 'cancel':
+    case 'cancelled':
       return OdooColors.error;
     default:
       return Colors.grey;
@@ -164,49 +158,24 @@ Color getStatusColor(String state) {
 
 String getStatusname(BuildContext context, String state) {
   switch (state) {
-    case 'no':
-      return AppLocalizations.of(context).nothing_to_invoice;
-    case 'to invoice':
-      return AppLocalizations.of(context).to_invoice;
-    case 'invoiced':
-      return AppLocalizations.of(context).fully_invoiced;
-    case 'upselling':
-      return AppLocalizations.of(context).upselling_opportunity;
-    case 'cancel':
+    case 'draft':
+      return AppLocalizations.of(context).draft;
+    case 'posted':
+      return AppLocalizations.of(context).done;
+    case 'cancelled':
       return AppLocalizations.of(context).canceled;
     default:
       return AppLocalizations.of(context).unknown; // Add this translation key
   }
 }
 
-double _getOrderProgress(String state) {
+double _getsalesOrderProgress(String state) {
   switch (state) {
     case 'draft':
       return 0.2;
-    case 'assigned':
-      return 0.5;
-    case 'done':
+    case 'posted':
       return 1.0;
-    case 'confirmed':
-      return 0.7;
-    case 'cancel':
-      return 0.0;
-    default:
-      return 0.0;
-  }
-}
-
-double _getsalesOrderProgress(String state) {
-  switch (state) {
-    case 'no':
-      return 0.2;
-    case 'to invoice':
-      return 0.5;
-    case 'invoiced':
-      return 1.0;
-    case 'upselling':
-      return 0.7;
-    case 'cancel':
+    case 'cancelled':
       return 0.0;
     default:
       return 0.0;
@@ -219,41 +188,16 @@ String _formatDate(String? date) {
   return date;
 }
 
-Widget buildStatusIndicator(String state) {
-  final colorIcon = getStatusColorAndIcon(state);
-  return CircleAvatar(
-    backgroundColor: colorIcon['color'],
-    child: Icon(colorIcon['icon'], size: 20, color: Colors.white),
-  );
-}
-
 void showDetails(BuildContext context, dynamic order) {
   print("Order ID: ${order['id']}"); // Debug log
   Navigator.push(
     context,
     MaterialPageRoute(
-      builder: (context) => SaleOrderdetailsPage(
+      builder: (context) => InvoicingDetailsPage(
         pickingId: order['id'],
       ),
     ),
   );
-}
-
-Map<String, dynamic> getStatusColorAndIcon(String state) {
-  switch (state) {
-    case 'draft':
-      return {'color': OdooColors.draft, 'icon': Icons.access_time};
-    case 'assigned':
-      return {'color': OdooColors.ready, 'icon': Icons.local_shipping};
-    case 'done':
-      return {'color': OdooColors.success, 'icon': Icons.check_circle};
-    case 'cancel':
-      return {'color': OdooColors.error, 'icon': Icons.cancel};
-    case 'confirmed':
-      return {'color': OdooColors.warning, 'icon': Icons.access_time};
-    default:
-      return {'color': Colors.grey, 'icon': Icons.error};
-  }
 }
 
 class OdooColors {
@@ -272,34 +216,29 @@ Widget buildFilterMenu(BuildContext context) {
       PopupMenuItem(
           value: 'all', child: Text(AppLocalizations.of(context).all)),
       PopupMenuItem(
-          value: 'no',
-          child: Text(AppLocalizations.of(context).nothing_to_invoice)),
+          value: 'draft', child: Text(AppLocalizations.of(context).draft)),
       PopupMenuItem(
-          value: 'to invoice',
-          child: Text(AppLocalizations.of(context).to_invoice)),
+          value: 'posted', child: Text(AppLocalizations.of(context).done)),
       PopupMenuItem(
-          value: 'upselling',
-          child: Text(AppLocalizations.of(context).upselling_opportunity)),
-      PopupMenuItem(
-          value: 'invoiced',
-          child: Text(AppLocalizations.of(context).fully_invoiced)),
+          value: 'cancelled',
+          child: Text(AppLocalizations.of(context).canceled)),
     ],
   );
 }
 
 void filterByStatus(BuildContext context, String status) {
-  final cubit = SaleOrderCubit.get(context);
+  final cubit = invoicingCubit.get(context);
   if (status == 'all') {
-    cubit.fetchSaleOrder();
+    cubit.fetchinvoicing();
   } else {
     cubit.filterOrders(status);
   }
 }
 
 void filterDeliveryOrderByStatus(BuildContext context, String status) {
-  final cubit = SaleOrderCubit.get(context);
+  final cubit = invoicingCubit.get(context);
   if (status == 'all') {
-    cubit.fetchSaleOrder();
+    cubit.fetchinvoicing();
   } else {
     cubit.filterOrders(status);
   }

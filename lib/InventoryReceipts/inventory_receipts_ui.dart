@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lottie/lottie.dart';
 import 'package:odoo/InventoryReceipts/widgets.dart';
 
+import '../home/home_ui.dart';
 import '../localization.dart';
 import 'new_inventory_receipt.dart';
 import 'inventory_receipts_cubit.dart';
@@ -24,117 +25,135 @@ class InventoryReceiptsPage extends StatelessWidget {
           }
         },
         builder: (context, state) {
-          return Scaffold(
-            appBar: PreferredSize(
-              preferredSize: const Size.fromHeight(70.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Color(0xFF714B67),
-                  borderRadius: BorderRadius.vertical(
-                    bottom: Radius.circular(25),
+          return WillPopScope(
+            onWillPop: () async {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => HomePage(
+                    changeLanguage: (String languageCode) {
+                      // You could also update and save the language preference here if needed.
+                      Localizations.localeOf(context).languageCode;
+                    },
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 10,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
                 ),
-                child: AppBar(
-                  backgroundColor: Colors.transparent,
-                  iconTheme: IconThemeData(color: Colors.white),
-                  title: Text(
-                    AppLocalizations.of(context).inventoryReceipts,
-                    style: TextStyle(color: Colors.white, fontSize: 20),
-                  ),
-                  actions: [
-                    IconButton(
-                      icon: const Icon(
-                        Icons.search,
-                        color: Colors.white,
-                      ),
-                      onPressed: () => showSearch(
-                        context: context,
-                        delegate: InventoryReceiptsSearch(
-                            InventoryReceiptsCubit.get(context)),
-                      ),
+              );
+              return false;
+            },
+            child: Scaffold(
+              appBar: PreferredSize(
+                preferredSize: const Size.fromHeight(70.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Color(0xFF714B67),
+                    borderRadius: BorderRadius.vertical(
+                      bottom: Radius.circular(25),
                     ),
-                    buildFilterMenu(context),
-                  ],
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 10,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: AppBar(
+                    backgroundColor: Colors.transparent,
+                    iconTheme: IconThemeData(color: Colors.white),
+                    title: Text(
+                      AppLocalizations.of(context).inventoryReceipts,
+                      style: TextStyle(color: Colors.white, fontSize: 20),
+                    ),
+                    actions: [
+                      IconButton(
+                        icon: const Icon(
+                          Icons.search,
+                          color: Colors.white,
+                        ),
+                        onPressed: () => showSearch(
+                          context: context,
+                          delegate: InventoryReceiptsSearch(
+                              InventoryReceiptsCubit.get(context)),
+                        ),
+                      ),
+                      buildFilterMenu(context),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            body: RefreshIndicator(
-              onRefresh: () async =>
-                  InventoryReceiptsCubit.get(context).fetchInventoryReceiptss(),
-              child:
-                  BlocBuilder<InventoryReceiptsCubit, InventoryReceiptsState>(
-                builder: (context, state) {
-                  if (state is InventoryReceiptsLoading) {
-                    return Center(
-                        child: Lottie.asset('assets/images/loading4.json',
-                            height: 200, width: 200));
-                  }
-                  if (state is InventoryReceiptsError) {
-                    return Center(child: Text(state.message));
-                  }
-                  if (state is InventoryReceiptsLoaded) {
-                    return Stack(
-                      alignment: Alignment
-                          .bottomRight, // Positions the FAB in the bottom right.
-                      children: [
-                        // Your list widget should expand as needed.
-                        buildOrderList(
-                          context,
-                          state.orders,
-                          () =>
-                              context.read<InventoryReceiptsCubit>().loadMore(),
-                        ),
-                        if (state.orders.length <
-                            context
+              body: RefreshIndicator(
+                onRefresh: () async => InventoryReceiptsCubit.get(context)
+                    .fetchInventoryReceiptss(),
+                child:
+                    BlocBuilder<InventoryReceiptsCubit, InventoryReceiptsState>(
+                  builder: (context, state) {
+                    if (state is InventoryReceiptsLoading) {
+                      return Center(
+                          child: Lottie.asset('assets/images/loading4.json',
+                              height: 200, width: 200));
+                    }
+                    if (state is InventoryReceiptsError) {
+                      return Center(child: Text(state.message));
+                    }
+                    if (state is InventoryReceiptsLoaded) {
+                      return Stack(
+                        alignment: Alignment
+                            .bottomRight, // Positions the FAB in the bottom right.
+                        children: [
+                          // Your list widget should expand as needed.
+                          buildOrderList(
+                            context,
+                            state.orders,
+                            () => context
                                 .read<InventoryReceiptsCubit>()
-                                .allOrders
-                                .length)
-                          Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                FloatingActionButton.extended(
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            newInventoryReceiptsScreen(),
-                                      ),
-                                    );
-                                  },
-                                  label: Text(
-                                    AppLocalizations.of(context).new_order,
-                                    style: TextStyle(color: Colors.white),
-                                  ),
-                                  backgroundColor: Color(0xFF714B67),
-                                ),
-                                /*           FloatingActionButton.extended(
-                                  onPressed: () => context
-                                      .read<InventoryReceiptsCubit>()
-                                      .loadMore(),
-                                  label: Text(
-                                    AppLocalizations.of(context).load_more,
-                                    style: TextStyle(color: Colors.white),
-                                  ),
-                                  backgroundColor: Color(0xFF714B67),
-                                ),*/
-                              ],
-                            ),
+                                .loadMore(),
                           ),
-                      ],
-                    );
-                  }
-                  return const Center(child: Text('No orders found'));
-                },
+                          if (state.orders.length <
+                              context
+                                  .read<InventoryReceiptsCubit>()
+                                  .allOrders
+                                  .length)
+                            Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  FloatingActionButton.extended(
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              NewInventoryReceiptsScreen(),
+                                        ),
+                                      );
+                                    },
+                                    label: Text(
+                                      AppLocalizations.of(context).new_order,
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                    backgroundColor: Color(0xFF714B67),
+                                  ),
+                                  /*           FloatingActionButton.extended(
+                                    onPressed: () => context
+                                        .read<InventoryReceiptsCubit>()
+                                        .loadMore(),
+                                    label: Text(
+                                      AppLocalizations.of(context).load_more,
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                    backgroundColor: Color(0xFF714B67),
+                                  ),*/
+                                ],
+                              ),
+                            ),
+                        ],
+                      );
+                    }
+                    return const Center(child: Text('No orders found'));
+                  },
+                ),
               ),
             ),
           );
