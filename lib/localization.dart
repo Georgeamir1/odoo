@@ -12,7 +12,15 @@ class AppLocalizations {
 
   static final Map<String, Map<String, String>> _localizedValues = {
     'en': {
+      'line': 'line',
+      'Transefer_Requests': 'Transefer Requests',
+      'noProductSelected': 'No Product Selected',
+      'invalidQuantity': 'Invalid Quantity',
       'username': 'Username',
+      'closed_date': 'Closed Date',
+      'approved_by': 'Approved By',
+      'notapproved': 'Not Approved',
+      'noProductsFound': 'No Products Found',
       'invoicesdetails': 'Invoices Details',
       'created_successfully': 'Created Successfully',
       'createPayment': 'Create Payment',
@@ -21,6 +29,17 @@ class AppLocalizations {
       'immediatePayment': 'immediate',
       'Immediate': 'Immediate',
       'invoices': 'invoices',
+      'reverse_invoice': 'Reverse Invoice',
+      'reverse_invoice_reason': 'Reason for Reversal',
+      'reverse_invoice_date': 'Reversal Date',
+      'reverse_invoice_success': 'Invoice reversed successfully',
+      'reverse_invoice_error': 'Error reversing invoice',
+      'edit_reversed_invoice': 'Edit Reversed Invoice',
+      'save_changes': 'Save Changes',
+      'post_invoice': 'Post Invoice',
+      'save_and_post': 'Save & Post',
+      'update_success': 'Invoice updated successfully',
+      'post_success': 'Invoice posted successfully',
       'retry': 'Retry',
       'sales_Order_details': 'Sales order details',
       'no_tax_applied': 'No taxes applied',
@@ -42,6 +61,7 @@ class AppLocalizations {
       'error_loading_order': 'Error loading order:',
       'not_available': 'N/A',
       'scheduled_date': 'Scheduled Date',
+      'create_date': 'Create Date',
       'deadline': 'Deadline',
       'source_document': 'Source Document',
       'operation_type': 'Operation Type',
@@ -49,10 +69,10 @@ class AppLocalizations {
       'unknown_product': 'Unknown Product',
       'unit': 'Unit',
       'demand': 'Demand',
-      'quantity': 'Quantity',
+      'quantity_label': 'Quantity',
       'validate_order': 'Validate Order',
       'create_backorder': 'Create Backorder',
-      'validate_without_backorder': 'Validate Without Backorder',
+      'validate_without_backorder_action': 'Validate Without Backorder',
       'order_validated_successfully': 'Order validated successfully!',
       'order_cannot_be_validated':
           'Order cannot be validated in its current state',
@@ -69,6 +89,8 @@ class AppLocalizations {
       "delivery_order": "Delivery Order",
       "inventory_receipts": "Inventory Receipts",
       "inventory_receipts_details": "Inventory Receipts Details",
+      "stock_picking_requests": "Transfer Request",
+      "stock_picking_request_details": "Stock Picking Request Details",
       "logout": "Logout",
       'customer': 'Customer',
       'payment_terms': 'Payment Terms',
@@ -92,6 +114,7 @@ class AppLocalizations {
       'no_payment_terms_found': 'No payment terms found',
       'no_products_found': 'No products found',
       'select': 'Select',
+      'warehouse': 'Warehouse',
       'Please_select_a_customer_and_payment_term':
           'Please select a customer and payment term',
       'delivery_orders': 'Delivery Orders',
@@ -110,9 +133,11 @@ class AppLocalizations {
       'Delivered': 'Delivered',
       'draft': 'Draft',
       'ready': 'Ready',
-      'done': 'Done',
+      'done_status': 'Done',
       'waiting': 'Waiting',
       'canceled': 'Canceled',
+      'confirmed': 'Confirmed',
+      'cancelled': 'Cancelled',
       'all': 'All',
       'cancel': 'Cancel',
       'unknown': 'unknown',
@@ -121,9 +146,50 @@ class AppLocalizations {
           'Please select a customer and add order lines',
       'invalid_order_line': 'Invalid order line',
       'order_created': 'Order created',
+      'no_stock_picking_requests': 'No stock picking requests found',
+      'try_again': 'Try Again',
+      'origin': 'Origin',
+      'source_location': 'Source Location',
+      'destination_location': 'Destination Location',
+      'check_availability': 'Check Availability',
+      'validate': 'Validate',
+      'validation_options': 'Validation Options',
+      'validate_with_backorder': 'Validate with Backorder',
+      'validate_with_backorder_description':
+          'Create a backorder for unprocessed products',
+      'validate_without_backorder': 'Validate without Backorder',
+      'validate_without_backorder_description':
+          'Process only available products and cancel the rest',
+      'validation_success': 'Validation successful',
+      'validation_without_backorder_success':
+          'Validation without backorder successful',
+      'done': 'Done',
+      'Requested_By': 'Requested By',
+      'add_product_line': 'Add Line',
+      'remove_line': 'Remove Line',
+      'confirm_deletion': 'Confirm Deletion',
+      'confirm_remove_product':
+          'Are you sure you want to remove "%s" from this request?',
+      'remove': 'Remove',
+      'product_line_added': 'Product line added successfully',
+      'product_line_removed': 'Product line removed successfully',
+      'quantity_to_transfer': 'Quantity to Transfer',
+      'product_code': 'Product Code',
+      'select_product': 'Select Product',
+      'product_details': 'Product Details',
+      'returns_created_and_validated':
+          'Returns created and validated successfully',
     },
     'ar': {
+      'line': 'الطلب',
+      'Transefer_Requests': 'طلب تحويل',
+      'invalidQuantity': 'كميه غير صالحه',
+      'noProductSelected': 'لم يتم اختياؤ منتج',
+      'approved_by': 'تمت الموافقة من قبل',
+      'closed_date': 'تاريخ الإغلاق',
+      'notapproved': 'غير معتمد',
       'upselling_opportunity': 'فرصه الارتقاء بالصفقه',
+      'noProductsFound': 'لم يتم العثور على منتجات',
       'invoicesdetails': 'تفاصيل الفتورة',
       'created_successfully': 'تم الإنشاء بنجاح',
       'paymentCreatedSuccess': 'تم انشاء الدفع بنجاح',
@@ -131,6 +197,17 @@ class AppLocalizations {
       'createPayment': 'إنشاء دفع',
       'paymentError': 'خطأ في الدفع',
       'invoices': 'الفواتير',
+      'reverse_invoice': 'عكس الفاتورة',
+      'reverse_invoice_reason': 'سبب العكس',
+      'reverse_invoice_date': 'تاريخ العكس',
+      'reverse_invoice_success': 'تم عكس الفاتورة بنجاح',
+      'reverse_invoice_error': 'خطأ في عكس الفاتورة',
+      'edit_reversed_invoice': 'تعديل الفاتورة المعكوسة',
+      'save_changes': 'حفظ التغييرات',
+      'post_invoice': 'ترحيل الفاتورة',
+      'save_and_post': 'حفظ وترحيل',
+      'update_success': 'تم تحديث الفاتورة بنجاح',
+      'post_success': 'تم ترحيل الفاتورة بنجاح',
       'retry': 'اعد المحاوله',
       'sales_Order_details': 'تفاصيل طلب المبيعات',
       'no_tax_applied': 'لا يوجد ضرا]ب مضافه',
@@ -150,6 +227,7 @@ class AppLocalizations {
       'error_loading_order': 'خطأ في تحميل الطلب:',
       'not_available': 'غير متاح',
       'scheduled_date': 'التاريخ المحدد',
+      'create_date': 'تاريخ الإنشاء',
       'pricelist': 'قائمة الأسعار',
       'date': 'التاريخ',
       'deadline': 'الموعد النهائي',
@@ -179,6 +257,8 @@ class AppLocalizations {
       "delivery_order": "أمر التوصيل",
       "inventory_receipts": "إيصالات المخزون",
       "inventory_receipts_details": "تفاصيل إيصالات المخزون",
+      "stock_picking_requests": "طلب تحويل",
+      "stock_picking_request_details": "تفاصيل طلب نقل المخزون",
       "logout": "تسجيل خروج",
       'customer': 'العميل',
       'payment_terms': 'شروط الدفع',
@@ -219,9 +299,11 @@ class AppLocalizations {
       'items': 'العناصر',
       'draft': 'مسودة',
       'ready': 'جاهز',
-      'done': 'مكتمل',
+      'done_status': 'مكتمل',
       'waiting': 'في الانتظار',
       'canceled': 'ملغى',
+      'confirmed': 'مؤكد',
+      'cancelled': 'ملغي',
       'all': 'الكل',
       'cancel': 'إلغاء',
       'unknown': 'غير معروف',
@@ -229,6 +311,36 @@ class AppLocalizations {
       'select_customer_and_lines': 'الرجاء تحديد عميل وإضافة بنود الطلب',
       'invalid_order_line': 'بند طلب غير صالح',
       'Immediate': 'فوري',
+      'no_stock_picking_requests': 'لم يتم العثور على طلبات نقل المخزون',
+      'try_again': 'حاول مرة أخرى',
+      'origin': 'المصدر',
+      'source_location': 'موقع المصدر',
+      'destination_location': 'موقع الوجهة',
+      'check_availability': 'التحقق من التوفر',
+      'validate': 'تحقق',
+      'validation_options': 'خيارات التحقق',
+      'validate_with_backorder': 'تحقق مع طلب مؤجل',
+      'validate_with_backorder_description':
+          'إنشاء طلب مؤجل للمنتجات غير المعالجة',
+      'validate_without_backorder_action': 'تحقق بدون طلب مؤجل',
+      'validate_without_backorder_description':
+          'معالجة المنتجات المتوفرة فقط وإلغاء الباقي',
+      'validation_success': 'تم التحقق بنجاح',
+      'warehouse': 'المخزن',
+      'validation_without_backorder_success': 'تم التحقق بدون طلب مؤجل بنجاح',
+      'add_product_line': 'إضافة منتج',
+      'remove_line': 'إزالة المنتج',
+      'Requested_By': 'طلب من قبل',
+      'confirm_deletion': 'تأكيد الحذف',
+      'confirm_remove_product':
+          'هل أنت متأكد أنك تريد إزالة "%s" من هذا الطلب؟',
+      'remove': 'إزالة',
+      'product_line_added': 'تمت إضافة المنتج بنجاح',
+      'product_line_removed': 'تمت إزالة المنتج بنجاح',
+      'quantity_to_transfer': 'الكمية المراد نقلها',
+      'product_code': 'رمز المنتج',
+      'select_product': 'اختر منتج',
+      'product_details': 'تفاصيل المنتج',
     },
   };
 
@@ -242,14 +354,31 @@ class AppLocalizations {
 
   // Getters for translations
   String get username => _translate('username');
+  String get line => _translate('line');
+  String get noProductSelected => _translate('noProductSelected');
+  String get approved_by => _translate('approved_by');
+  String get notapproved => _translate('notapproved');
+  String get noProductsFound => _translate('noProductsFound');
   String get created_successfully => _translate('created_successfully');
   String get paymentError => _translate('paymentError');
   String get createPayment => _translate('createPayment');
   String get paymentCreatedSuccess => _translate('paymentCreatedSuccess');
   String get immediate => _translate('immediatePayment');
   String get invoices => _translate('invoices');
+  String get invalidQuantity => _translate('invalidQuantity');
   String get invoicesdetails => _translate('invoicesdetails');
   String get retry => _translate('retry');
+  String get reverse_invoice => _translate('reverse_invoice');
+  String get reverse_invoice_reason => _translate('reverse_invoice_reason');
+  String get reverse_invoice_date => _translate('reverse_invoice_date');
+  String get reverse_invoice_success => _translate('reverse_invoice_success');
+  String get reverse_invoice_error => _translate('reverse_invoice_error');
+  String get edit_reversed_invoice => _translate('edit_reversed_invoice');
+  String get save_changes => _translate('save_changes');
+  String get post_invoice => _translate('post_invoice');
+  String get save_and_post => _translate('save_and_post');
+  String get update_success => _translate('update_success');
+  String get post_success => _translate('post_success');
   String get no_tax_applied => _translate('no_tax_applied');
   String get sales => _translate('sales');
   String get total => _translate('total');
@@ -269,6 +398,7 @@ class AppLocalizations {
   String get errorLoadingOrder => _translate('error_loading_order');
   String get notAvailable => _translate('not_available');
   String get scheduledDate => _translate('scheduled_date');
+  String get create_date => _translate('create_date');
   String get deadline => _translate('deadline');
   String get sourceDocument => _translate('source_document');
   String get Immediate => _translate('Immediate');
@@ -286,6 +416,7 @@ class AppLocalizations {
   String get orderCannotBeValidated => _translate('order_cannot_be_validated');
   String get order_created => _translate('order_created');
   String get receipt_lines => _translate('receipt_lines');
+  String get closed_date => _translate('closed_date');
   String get select_customer_and_lines =>
       _translate('select_customer_and_lines');
   String get invalid_order_line => _translate('invalid_order_line');
@@ -346,12 +477,47 @@ class AppLocalizations {
   String get items => _translate('items');
   String get draft => _translate('draft');
   String get ready => _translate('ready');
-  String get done => _translate('done');
+  String get done => _translate('done_status');
   String get waiting => _translate('waiting');
   String get canceled => _translate('canceled');
+  String get confirmed => _translate('confirmed');
+  String get cancelled => _translate('cancelled');
   String get all => _translate('all');
   String get cancel => _translate('cancel');
   String get select => _translate('select');
+  String get stockPickingRequests => _translate('stock_picking_requests');
+  String get Transefer_Requests => _translate('Transefer Requests');
+  String get noStockPickingRequests => _translate('no_stock_picking_requests');
+  String get tryAgain => _translate('try_again');
+  String get origin => _translate('origin');
+  String get warehouse => _translate('warehouse');
+  String get sourceLocation => _translate('source_location');
+  String get destinationLocation => _translate('destination_location');
+  String get requested_by => _translate('Requested_By');
+  String get checkAvailability => _translate('check_availability');
+  String get validate => _translate('validate');
+  String get validationOptions => _translate('validation_options');
+  String get validateWithBackorder => _translate('validate_with_backorder');
+  String get validateWithBackorderDescription =>
+      _translate('validate_with_backorder_description');
+  String get validateWithoutBackorderOption =>
+      _translate('validate_without_backorder');
+  String get validateWithoutBackorderDescription =>
+      _translate('validate_without_backorder_description');
+  String get validationSuccess => _translate('validation_success');
+  String get validationWithoutBackorderSuccess =>
+      _translate('validation_without_backorder_success');
+  String get addProductLine => _translate('add_product_line');
+  String get removeLine => _translate('remove_line');
+  String get confirmDeletion => _translate('confirm_deletion');
+  String get confirmRemoveProduct => _translate('confirm_remove_product');
+  String get remove => _translate('remove');
+  String get productLineAdded => _translate('product_line_added');
+  String get productLineRemoved => _translate('product_line_removed');
+  String get quantityToTransfer => _translate('quantity_to_transfer');
+  String get productCode => _translate('product_code');
+  String get selectProduct => _translate('select_product');
+  String get productDetails => _translate('product_details');
   static const LocalizationsDelegate<AppLocalizations> delegate =
       _AppLocalizationsDelegate();
 }

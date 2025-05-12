@@ -1,27 +1,3 @@
-/*
-abstract class invoicingState {}
-
-class invoicingInitial extends invoicingState {}
-
-class invoicingLoading extends invoicingState {}
-
-class invoicingCreated extends invoicingState {
-  final int orderId;
-  invoicingCreated(this.orderId);
-}
-
-class invoicingError extends invoicingState {
-  final String error;
-  invoicingError(this.error);
-}
-
-class invoicingStatusUpdated extends invoicingState {
-  final String status;
-  invoicingStatusUpdated(this.status);
-}*/
-
-//_______________________________________________________________________
-
 abstract class invoicingState {}
 
 /// The initial state before any action is taken.
@@ -29,6 +5,11 @@ class invoicingInitial extends invoicingState {}
 
 /// Indicates that the sale order creation is in progress.
 class invoicingLoading extends invoicingState {}
+
+class invoicingReturnSuccess extends invoicingdetailsState {
+  final int? returnPickingId;
+  invoicingReturnSuccess(this.returnPickingId);
+}
 
 class invoicingLoaded extends invoicingState {
   final List<Map<String, dynamic>> orders;
@@ -55,6 +36,8 @@ abstract class invoicingdetailsState {}
 
 class invoicingdetailsLoading extends invoicingdetailsState {}
 
+class deliveryOrderLoading extends invoicingdetailsState {}
+
 class invoicingdetailsLoaded extends invoicingdetailsState {
   final Map<String, dynamic> detail;
   final Map<String, dynamic> picking;
@@ -64,6 +47,21 @@ class invoicingdetailsLoaded extends invoicingdetailsState {
 class invoicingdetailsError extends invoicingdetailsState {
   final String message;
   invoicingdetailsError(this.message);
+}
+
+class deliveryOrderSuccess extends invoicingdetailsState {
+  final int pickingId;
+  deliveryOrderSuccess(this.pickingId);
+}
+
+class deliveryOrderLoaded extends invoicingdetailsState {
+  final List<dynamic> deliveries;
+  deliveryOrderLoaded(this.deliveries);
+}
+
+class deliveryOrderError extends invoicingdetailsState {
+  final String message;
+  deliveryOrderError(this.message);
 }
 
 class invoicingdetailsvalidationError extends invoicingdetailsState {
@@ -89,4 +87,19 @@ class BackOrderValidationError extends invoicingdetailsState {
 class NoBackOrderValidationError extends invoicingdetailsState {
   final String message;
   NoBackOrderValidationError(this.message);
+}
+
+class invoicingdetailsReversalSuccess extends invoicingdetailsState {
+  final int? reversedInvoiceId;
+  invoicingdetailsReversalSuccess(this.reversedInvoiceId);
+}
+
+class invoicingUpdateSuccess extends invoicingdetailsState {
+  final int invoiceId;
+  invoicingUpdateSuccess(this.invoiceId);
+}
+
+class invoicingPostSuccess extends invoicingdetailsState {
+  final int invoiceId;
+  invoicingPostSuccess(this.invoiceId);
 }

@@ -8,6 +8,7 @@ import '../localization.dart';
 import '../networking/odoo_service.dart';
 import '../sales_order/sales_order_cubit.dart';
 import '../testttt.dart';
+import 'edit_reversed_invoice.dart';
 import 'invoicing_cubit.dart';
 import 'invoicing_list.dart';
 import 'invoicing_status.dart';
@@ -86,7 +87,16 @@ class InvoicingDetailsPage extends StatelessWidget {
                     },
                   );
                 }
-                return const SizedBox.shrink();
+                // Navigation for reversed invoice is handled in the BlocListener
+                return Center(
+                  child: Text(
+                    AppLocalizations.of(context).notAvailable,
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 16,
+                    ),
+                  ),
+                );
               },
             )
           ],
@@ -100,7 +110,8 @@ class InvoicingDetailsPage extends StatelessWidget {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
+                  color: Colors.black
+                      .withAlpha(51), // 51 is approximately 0.2 * 255
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -116,10 +127,13 @@ class InvoicingDetailsPage extends StatelessWidget {
                   content: Text(
                       AppLocalizations.of(context).orderValidatedSuccessfully),
                   backgroundColor: Colors.green,
+                  duration: const Duration(seconds: 2),
                 ),
               );
+              // Automatically navigate back after success
+              Navigator.pop(context);
             } else if (state is NavigateToinvoicingdetailsPage) {
-              Navigator.push(
+              Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
                   builder: (context) => invoicingPage(),
@@ -130,6 +144,36 @@ class InvoicingDetailsPage extends StatelessWidget {
                 SnackBar(
                   content: Text('⚠️ ${state.message}'),
                   backgroundColor: Colors.orange,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            } else if (state is invoicingdetailsReversalSuccess) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                      AppLocalizations.of(context).reverse_invoice_success),
+                  backgroundColor: Colors.green,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+
+              // Automatically navigate to the reversed invoice if we have a valid ID
+              if (state.reversedInvoiceId != null) {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => EditReversedInvoicePage(
+                      invoiceId: state.reversedInvoiceId!,
+                    ),
+                  ),
+                );
+              }
+            } else if (state is invoicingdetailsError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('⚠️ ${state.message}'),
+                  backgroundColor: Colors.red,
+                  duration: const Duration(seconds: 2),
                 ),
               );
             }
@@ -143,7 +187,7 @@ class InvoicingDetailsPage extends StatelessWidget {
               } else if (state is invoicingdetailsLoaded) {
                 return _buildContent(state, context);
               }
-              return const SizedBox.shrink();
+              return _buildLoadingState(context); // Default to loading state
             },
           ),
         ),
@@ -234,25 +278,158 @@ class PaymentSection extends StatefulWidget {
 
 class _PaymentSectionState extends State<PaymentSection> {
   final _formKey = GlobalKey<FormState>();
+  final _reverseFormKey = GlobalKey<FormState>();
   double _paymentAmount = 0.0;
   bool _isProcessing = false;
   final TextEditingController _amountController = TextEditingController();
+  final TextEditingController _reasonController = TextEditingController();
+  final TextEditingController _dateController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _paymentAmount = widget.notPaid;
     _amountController.text = _paymentAmount.toStringAsFixed(2);
+
+    // Initialize date controller with current date
+    final now = DateTime.now();
+    _dateController.text =
+        "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
   }
 
   @override
   void dispose() {
     _amountController.dispose();
+    _reasonController.dispose();
+    _dateController.dispose();
     super.dispose();
+  }
+
+  void _showReverseInvoiceDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(AppLocalizations.of(context).reverse_invoice),
+        content: Form(
+          key: _reverseFormKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Reason field
+              TextFormField(
+                controller: _reasonController,
+                decoration: InputDecoration(
+                  labelText:
+                      AppLocalizations.of(context).reverse_invoice_reason,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter a reason for reversal';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // Date field
+              TextFormField(
+                controller: _dateController,
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context).reverse_invoice_date,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.calendar_today),
+                    onPressed: () async {
+                      final date = await showDatePicker(
+                        context: context,
+                        initialDate: DateTime.now(),
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime(2100),
+                      );
+                      if (date != null) {
+                        _dateController.text =
+                            "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+                      }
+                    },
+                  ),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter a date';
+                  }
+                  // Simple date validation
+                  final dateRegex = RegExp(r'^\d{4}-\d{2}-\d{2}$');
+                  if (!dateRegex.hasMatch(value)) {
+                    return 'Please enter a valid date (YYYY-MM-DD)';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(AppLocalizations.of(context).cancel),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF714B67),
+            ),
+            onPressed: () {
+              if (_reverseFormKey.currentState!.validate()) {
+                Navigator.pop(context);
+                _processReverseInvoice();
+              }
+            },
+            child: Text(AppLocalizations.of(context).reverse_invoice),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _processReverseInvoice() async {
+    if (!mounted) return;
+
+    setState(() => _isProcessing = true);
+
+    try {
+      // Create the reverse invoice - navigation will be handled by the BlocListener
+      await BlocProvider.of<invoicingdetailsCubit>(context)
+          .createReverseInvoice(
+        widget.saleOrderId,
+        _reasonController.text,
+        _dateController.text,
+      );
+
+      if (mounted) {
+        _reasonController.clear();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(
+                  "❌ ${AppLocalizations.of(context).reverse_invoice_error}: ${e.toString()}")),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isProcessing = false);
+      }
+    }
   }
 
   Future<void> _processPayment() async {
     if (!_formKey.currentState!.validate()) return;
+    if (!mounted) return;
 
     setState(() => _isProcessing = true);
 
@@ -260,7 +437,6 @@ class _PaymentSectionState extends State<PaymentSection> {
       final odoo = OdooRpcService();
 
       // 1. Ensure invoice is posted
-      // 1. Get invoice state
       final invoice = await odoo.callKw({
         "model": "account.move",
         "method": "read",
@@ -273,7 +449,6 @@ class _PaymentSectionState extends State<PaymentSection> {
       });
       final state = invoice.first['state'];
       if (state == 'draft') {
-        // إذا كانت الفاتورة مسودة، ننشرها
         await odoo.callKw({
           "model": "account.move",
           "method": "action_post",
@@ -326,27 +501,44 @@ class _PaymentSectionState extends State<PaymentSection> {
           "context": {
             "active_model": "account.move",
             "active_ids": [widget.saleOrderId],
-            "force_reconcile": true, // جرب تضيف دي
+            "force_reconcile": true,
             "dont_redirect_to_payments": true,
           }
         }
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
             content: Text(
-                "✅ Payment of \$${_paymentAmount.toStringAsFixed(2)} processed successfully!")),
-      );
+                "✅ Payment of \$${_paymentAmount.toStringAsFixed(2)} processed successfully!"),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
 
-      // Refresh the data
-      BlocProvider.of<invoicingdetailsCubit>(context)
-          .fetchDetail(widget.saleOrderId);
+        // Refresh the data and navigate back after success
+        await BlocProvider.of<invoicingdetailsCubit>(context)
+            .fetchDetail(widget.saleOrderId);
+
+        Future.delayed(const Duration(seconds: 2), () {
+          Navigator.pop(context);
+        });
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("❌ Payment error: ${e.toString()}")),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("❌ Payment error: ${e.toString()}"),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     } finally {
-      setState(() => _isProcessing = false);
+      if (mounted) {
+        setState(() => _isProcessing = false);
+      }
     }
   }
 
@@ -475,6 +667,33 @@ class _PaymentSectionState extends State<PaymentSection> {
                             ),
                     ),
                   ),
+
+                  // Reverse Invoice Button
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        side: const BorderSide(color: Color(0xFF714B67)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      icon: const Icon(Icons.undo, color: Color(0xFF714B67)),
+                      onPressed: widget.detail['state'] == 'posted'
+                          ? _showReverseInvoiceDialog
+                          : null,
+                      label: Text(
+                        AppLocalizations.of(context).reverse_invoice,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Color(0xFF714B67),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -532,7 +751,6 @@ class _PaymentSectionState extends State<PaymentSection> {
   }
 }
 
-// ... [Keep all your existing _OrderHeaderCard, _ProductListSection, _ProductListItem classes unchanged]
 class _OrderHeaderCard extends StatelessWidget {
   final Map<String, dynamic> detail;
   final Map<String, dynamic> picking;
@@ -586,7 +804,8 @@ class _OrderHeaderCard extends StatelessWidget {
     final statusConfig = _getStatusConfig(status);
     return Chip(
       label: Text(status.toUpperCase()),
-      backgroundColor: statusConfig.color.withOpacity(0.2),
+      backgroundColor:
+          statusConfig.color.withAlpha(51), // 51 is approximately 0.2 * 255
       labelStyle: TextStyle(
         color: statusConfig.color,
         fontWeight: FontWeight.bold,

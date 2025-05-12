@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../delivery_order/delivery_order_cubit.dart';
 import '../delivery_order/delivery_order_status.dart';
 import '../invoicing/invoicing_cubit.dart';
+import '../invoicing/invoicing_details.dart';
 import '../localization.dart';
 import '../networking/odoo_service.dart';
 import '../testttt.dart';
@@ -200,9 +201,117 @@ class SaleOrderdetailsPage extends StatelessWidget {
           const SizedBox(height: 16),
           _ProductListSection(moves: state.detail['moves']),
           const SizedBox(height: 24),
+          Text(
+              "${state.detail['state'] ?? AppLocalizations.of(context).notAvailable}"),
+          ViewInvoicesButton(saleOrderId: state.detail['invoice_ids']),
           CreateInvoiceButton(saleOrderId: pickingId)
         ],
       ),
+    );
+  }
+}
+
+class InvoicesListSheet extends StatelessWidget {
+  final List<dynamic> saleOrderIds;
+
+  const InvoicesListSheet({super.key, required this.saleOrderIds});
+
+  Future<List<Map<String, dynamic>>> _fetchInvoices() async {
+    final odoo = OdooRpcService();
+    final result = await odoo.callKw({
+      "model": "account.move",
+      "method": "search_read",
+      "args": [
+        [
+          ["id", "=", saleOrderIds],
+          ["move_type", "=", "out_invoice"]
+        ],
+        ["name", "invoice_date", "amount_total", "state"]
+      ],
+      "kwargs": {"limit": 20},
+      "context": {}
+    });
+
+    return (result as List).cast<Map<String, dynamic>>();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text('فواتير الطلب'),
+        leading: const CloseButton(),
+      ),
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+        future: _fetchInvoices(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final invoices = snapshot.data ?? [];
+
+          if (invoices.isEmpty) {
+            return const Center(child: Text('لا توجد فواتير لهذا الطلب.'));
+          }
+
+          return ListView.separated(
+            itemCount: invoices.length,
+            separatorBuilder: (_, __) => const Divider(),
+            itemBuilder: (context, index) {
+              final invoice = invoices[index];
+              return InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => InvoicingDetailsPage(
+                        pickingId: invoice['id'],
+                      ),
+                    ),
+                  );
+                },
+                child: ListTile(
+                  leading: const Icon(Icons.receipt),
+                  title: Text(invoice['name'] ?? ''),
+                  subtitle: Text('التاريخ: ${invoice['invoice_date'] ?? '—'}'),
+                  trailing: Text('${invoice['amount_total'] ?? 0} د.أ'),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+class ViewInvoicesButton extends StatelessWidget {
+  final List<dynamic> saleOrderId;
+
+  const ViewInvoicesButton({super.key, required this.saleOrderId});
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton.icon(
+      icon: const Icon(Icons.receipt),
+      label: const Text("عرض الفواتير"),
+      onPressed: () {
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          builder: (context) => FractionallySizedBox(
+            heightFactor: 0.85,
+            child: InvoicesListSheet(
+              saleOrderIds: saleOrderId,
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -225,11 +334,10 @@ class CreateInvoiceButton extends StatelessWidget {
           "method": "create",
           "args": [
             {
-              "advance_payment_method":
-                  "delivered", // فاتورة عادية بناءً على الكمية المسلمة
+              "advance_payment_method": "delivered",
               "deduct_down_payments": true,
               "consolidated_billing": true,
-              "sale_order_ids": [saleOrderId] // معرف طلب المبيعات
+              "sale_order_ids": [saleOrderId]
             }
           ],
           'kwargs': {},
@@ -238,15 +346,17 @@ class CreateInvoiceButton extends StatelessWidget {
             "active_model": "sale.order"
           }
         });
+
         final result2 = await odoo.callKw({
           "model": "sale.advance.payment.inv",
           "method": "create_invoices",
           "args": [
-            [result] // معرف طلب المبيعات
+            [result]
           ],
           'kwargs': {},
           "context": {}
         });
+
         await odoo.callKw({
           "model": "account.move",
           "method": "action_post",
@@ -259,15 +369,13 @@ class CreateInvoiceButton extends StatelessWidget {
         });
 
         if (context.mounted) {
-          if (result2 != null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('تم إنشاء الفاتورة بنجاح 🎉')),
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('فشل إنشاء الفاتورة')),
-            );
-          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result2 != null
+                  ? 'تم إنشاء الفاتورة بنجاح 🎉'
+                  : 'فشل إنشاء الفاتورة'),
+            ),
+          );
         }
       },
     );

@@ -7,6 +7,7 @@ import '../localization.dart';
 import '../login/login_ui.dart';
 import '../networking/odoo_service.dart';
 import '../sales_order/sales_order_list.dart';
+import '../stock_picking_request/stock_picking_request_ui.dart';
 
 class HomePage extends StatelessWidget {
   final Function(String) changeLanguage;
@@ -167,6 +168,20 @@ class HomePage extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                           builder: (context) => InventoryReceiptsPage()),
+                    );
+                  },
+                ),
+                _buildOptionCard(
+                  context: context,
+                  titleKey: AppLocalizations.of(context).stockPickingRequests,
+                  icon: Icons.swap_horiz,
+                  backgroundColor: const Color(0xFFE3F2FD),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) =>
+                              const StockPickingRequestPage()),
                     );
                   },
                 ),

@@ -471,6 +471,8 @@ class SaleOrderdetailsCubit extends Cubit<SaleOrderdetailsState> {
         ],
         [
           'name',
+          'invoice_status',
+          'invoice_ids',
           'amount_untaxed',
           'partner_id',
           'amount_tax',
@@ -513,6 +515,8 @@ class SaleOrderdetailsCubit extends Cubit<SaleOrderdetailsState> {
       final detail = {
         'id': pickingId,
         'name': picking['name'],
+        'invoice_ids': picking['invoice_ids'],
+        'state': picking['invoice_status'],
         'amount_untaxed': picking['amount_untaxed'],
         'partner_id': picking['partner_id'],
         'date_order': picking['date_order'],
