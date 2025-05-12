@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // Import SharedPreferences package
 import 'package:flutter_signin_button/flutter_signin_button.dart';
 import 'package:odoo/login/login_cubit.dart';
 import 'package:odoo/login/login_states.dart';
 import '../home/home_ui.dart';
 import '../localization.dart';
+import '../locale_cubit.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key, required this.title}) : super(key: key);
@@ -29,14 +29,6 @@ class _LoginPageState extends State<LoginPage> {
     super.didChangeDependencies();
     // Determine if the current locale is Arabic.
     isArabic = Localizations.localeOf(context).languageCode == 'ar';
-    // Save the preference (this will be called when dependencies change).
-    _saveLanguagePreference(isArabic!);
-  }
-
-  // Helper function to save language preference in SharedPreferences
-  Future<void> _saveLanguagePreference(bool isArabic) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isArabic', isArabic);
   }
 
   @override
@@ -264,8 +256,6 @@ class _LoginPageState extends State<LoginPage> {
                             TextButton(
                               onPressed: () {
                                 context.read<LocaleCubit>().switchToEnglish();
-                                _saveLanguagePreference(
-                                    false); // Save English preference
                               },
                               child: Text(
                                 'English',
@@ -281,8 +271,6 @@ class _LoginPageState extends State<LoginPage> {
                             TextButton(
                               onPressed: () {
                                 context.read<LocaleCubit>().switchToArabic();
-                                _saveLanguagePreference(
-                                    true); // Save Arabic preference
                               },
                               child: Text(
                                 'العربية',
@@ -311,12 +299,4 @@ class _LoginPageState extends State<LoginPage> {
       ),
     );
   }
-}
-
-// Add this LocaleCubit to your app's bloc layer
-class LocaleCubit extends Cubit<Locale> {
-  LocaleCubit() : super(const Locale('en'));
-
-  void switchToEnglish() => emit(const Locale('en'));
-  void switchToArabic() => emit(const Locale('ar'));
 }
