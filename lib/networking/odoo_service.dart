@@ -221,6 +221,41 @@ class OdooRpcService {
     }
   }
 
+  /// Get current user information
+  Future<Map<String, dynamic>?> getCurrentUser() async {
+    try {
+      if (_userId == null) {
+        print("No user is logged in");
+        return null;
+      }
+
+      final userData = await client.callKw({
+        'model': 'res.users',
+        'method': 'search_read',
+        'args': [
+          [
+            ['id', '=', _userId]
+          ]
+        ],
+        'kwargs': {
+          'fields': ['name', 'login', 'partner_id', 'company_id', 'email'],
+          'limit': 1,
+        },
+      });
+
+      if (userData != null && userData.isNotEmpty) {
+        print("Retrieved user data: ${userData[0]}");
+        return userData[0];
+      }
+
+      print("User data not found.");
+      return null;
+    } catch (e) {
+      print("Error getting current user: $e");
+      return null;
+    }
+  }
+
   Future<void> logout() async {
     try {
       print("Logging out user: $_userId");

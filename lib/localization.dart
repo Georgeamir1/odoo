@@ -13,6 +13,8 @@ class AppLocalizations {
   static final Map<String, Map<String, String>> _localizedValues = {
     'en': {
       'line': 'line',
+      'quickActions': 'Quick Actions',
+      'settings': 'settings',
       'Transefer_Requests': 'Transefer Requests',
       'noProductSelected': 'No Product Selected',
       'invalidQuantity': 'Invalid Quantity',
@@ -182,6 +184,8 @@ class AppLocalizations {
     },
     'ar': {
       'line': 'الطلب',
+      'quickActions': "الإجراءات السريعة",
+      'settings': 'الإعدادات',
       'Transefer_Requests': 'طلب تحويل',
       'invalidQuantity': 'كميه غير صالحه',
       'noProductSelected': 'لم يتم اختياؤ منتج',
@@ -354,6 +358,8 @@ class AppLocalizations {
 
   // Getters for translations
   String get username => _translate('username');
+  String get quickActions => _translate('quickActions');
+  String get settings => _translate('settings');
   String get line => _translate('line');
   String get noProductSelected => _translate('noProductSelected');
   String get approved_by => _translate('approved_by');
