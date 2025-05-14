@@ -173,7 +173,22 @@ class invoicingdetailsCubit extends Cubit<invoicingdetailsState> {
       int invoiceId, String reason, String date) async {
     emit(invoicingdetailsLoading());
     try {
-      // First, get available journals to use the correct journal_id
+      // First, check if there's already a reversed invoice for this invoice
+      final reversedInvoices = await odooService.fetchRecords(
+        'account.move',
+        [
+          ['reversed_entry_id', '=', invoiceId]
+        ],
+        ['id', 'name', 'state'],
+      );
+
+      if (reversedInvoices.isNotEmpty) {
+        // There's already a reversed invoice, return error
+        return invoicingdetailsError(
+            'This invoice already has a reversed invoice');
+      }
+
+      // Get available journals to use the correct journal_id
       final journals = await odooService.fetchRecords(
         'account.journal',
         [

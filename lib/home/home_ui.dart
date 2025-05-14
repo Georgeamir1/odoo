@@ -49,16 +49,14 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(70.0),
-          child: _buildAppBar(context, isArabic, primaryColor)),
+          preferredSize: const Size.fromHeight(50.0),
+          child:
+              SafeArea(child: _buildAppBar(context, isArabic, primaryColor))),
       key: _scaffoldKey,
       backgroundColor: Colors.grey[100],
       drawer: _buildDrawer(context, isArabic, primaryColor),
       body: Column(
         children: [
-/*
-          _buildAppBar(context, isArabic, primaryColor),
-*/
           Expanded(
             child: _buildHomeContent(context, isArabic, primaryColor),
           ),

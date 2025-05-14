@@ -88,15 +88,7 @@ class InvoicingDetailsPage extends StatelessWidget {
                   );
                 }
                 // Navigation for reversed invoice is handled in the BlocListener
-                return Center(
-                  child: Text(
-                    AppLocalizations.of(context).notAvailable,
-                    style: TextStyle(
-                      color: Colors.grey.shade600,
-                      fontSize: 16,
-                    ),
-                  ),
-                );
+                return Center();
               },
             )
           ],
@@ -305,7 +297,49 @@ class _PaymentSectionState extends State<PaymentSection> {
     super.dispose();
   }
 
-  void _showReverseInvoiceDialog() {
+  Future<void> _showReverseInvoiceDialog() async {
+    // Check if there's already a reversed invoice for this invoice
+    final odoo = OdooRpcService();
+    try {
+      final reversedInvoices = await odoo.fetchRecords(
+        'account.move',
+        [
+          ['reversed_entry_id', '=', widget.saleOrderId]
+        ],
+        ['id', 'name', 'state'],
+      );
+
+      if (reversedInvoices.isNotEmpty) {
+        // There's already a reversed invoice, show error message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("❌ This invoice already has a reversed invoice"),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+        return;
+      }
+
+      // No reversed invoice exists, show the dialog
+      if (!mounted) return;
+    } catch (e) {
+      // Handle any errors during the check
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:
+                Text("❌ Error checking for reversed invoices: ${e.toString()}"),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -388,7 +422,10 @@ class _PaymentSectionState extends State<PaymentSection> {
                 _processReverseInvoice();
               }
             },
-            child: Text(AppLocalizations.of(context).reverse_invoice),
+            child: Text(
+              AppLocalizations.of(context).reverse_invoice,
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -670,30 +707,31 @@ class _PaymentSectionState extends State<PaymentSection> {
 
                   // Reverse Invoice Button
                   const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        side: const BorderSide(color: Color(0xFF714B67)),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                  if (widget.detail['move_type'] != 'out_refund')
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          side: const BorderSide(color: Color(0xFF714B67)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
-                      ),
-                      icon: const Icon(Icons.undo, color: Color(0xFF714B67)),
-                      onPressed: widget.detail['state'] == 'posted'
-                          ? _showReverseInvoiceDialog
-                          : null,
-                      label: Text(
-                        AppLocalizations.of(context).reverse_invoice,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          color: Color(0xFF714B67),
-                          fontWeight: FontWeight.bold,
+                        icon: const Icon(Icons.undo, color: Color(0xFF714B67)),
+                        onPressed: widget.detail['state'] == 'posted'
+                            ? _showReverseInvoiceDialog
+                            : null,
+                        label: Text(
+                          AppLocalizations.of(context).reverse_invoice,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Color(0xFF714B67),
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
-                  ),
                 ],
               ),
             ),
