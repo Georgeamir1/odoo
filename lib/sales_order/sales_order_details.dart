@@ -40,118 +40,129 @@ class SaleOrderdetailsPage extends StatelessWidget {
               DeliveryOrderDetailCubit(OdooRpcService())..GetCompanyName(),
         ),
       ],
-      child: Scaffold(
-        appBar: AppBar(
-          iconTheme: const IconThemeData(color: Colors.white),
-          title: Text(
-            AppLocalizations.of(context).salesOrderDetails,
-            style: const TextStyle(color: Colors.white),
-          ),
-          /*   actions: [
-            BlocBuilder<SaleOrderdetailsCubit, SaleOrderdetailsState>(
-              builder: (context, state) {
-                if (state is SaleOrderdetailsLoaded) {
-                  return IconButton(
-                    icon: const Icon(Icons.print, color: Colors.white),
+      child: WillPopScope(
+        onWillPop: () async {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => SaleOrderPage(),
+            ),
+          );
+          return false;
+        },
+        child: Scaffold(
+          appBar: AppBar(
+            iconTheme: const IconThemeData(color: Colors.white),
+            title: Text(
+              AppLocalizations.of(context).salesOrderDetails,
+              style: const TextStyle(color: Colors.white),
+            ),
+            /*   actions: [
+              BlocBuilder<SaleOrderdetailsCubit, SaleOrderdetailsState>(
+                builder: (context, state) {
+                  if (state is SaleOrderdetailsLoaded) {
+                    return IconButton(
+                      icon: const Icon(Icons.print, color: Colors.white),
 
-                    onPressed: () async {
-                      await DeliveryOrderDetailCubit.get(context)
-                          .GetCompanyName();
-                      SharedPreferences prefs =
-                          await SharedPreferences.getInstance();
-                      final orderData = {
-                        'company_name':
-                            DeliveryOrderDetailCubit.get(context).CompanyName1,
-                        'user_name': prefs.getString('username'),
-                        'customer_name':
-                            state.picking['partner_id'][1] ?? 'N/A',
-                        'username': 'Seller Name',
-                        'items': state.detail['moves']
-                                ?.map((move) => {
-                                      'name': move['name'] ?? 'Unknown',
-                                      'quantity': move['product_uom_qty'] ?? 0,
-                                      'price': move['price_unit'] ?? 0,
-                                    })
-                                .toList() ??
-                            [],
-                        'total_before_vat': state.picking['amount_untaxed'],
-                        'vat_amount': state.picking['amount_tax'],
-                        'total_with_vat': state.picking['amount_total'],
-                      };
+                      onPressed: () async {
+                        await DeliveryOrderDetailCubit.get(context)
+                            .GetCompanyName();
+                        SharedPreferences prefs =
+                            await SharedPreferences.getInstance();
+                        final orderData = {
+                          'company_name':
+                              DeliveryOrderDetailCubit.get(context).CompanyName1,
+                          'user_name': prefs.getString('username'),
+                          'customer_name':
+                              state.picking['partner_id'][1] ?? 'N/A',
+                          'username': 'Seller Name',
+                          'items': state.detail['moves']
+                                  ?.map((move) => {
+                                        'name': move['name'] ?? 'Unknown',
+                                        'quantity': move['product_uom_qty'] ?? 0,
+                                        'price': move['price_unit'] ?? 0,
+                                      })
+                                  .toList() ??
+                              [],
+                          'total_before_vat': state.picking['amount_untaxed'],
+                          'vat_amount': state.picking['amount_tax'],
+                          'total_with_vat': state.picking['amount_total'],
+                        };
 
-                      showDialog(
-                        context: context,
-                        builder: (context) => Dialog(
-                          insetPadding: const EdgeInsets.all(16),
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 500),
-                            child: InVoicePrintScreen(orderData: orderData),
+                        showDialog(
+                          context: context,
+                          builder: (context) => Dialog(
+                            insetPadding: const EdgeInsets.all(16),
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 500),
+                              child: InVoicePrintScreen(orderData: orderData),
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  );
+                        );
+                      },
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              )
+            ],*/
+            centerTitle: true,
+            elevation: 0,
+            flexibleSpace: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF714B67),
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(25),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          body: BlocListener<SaleOrderdetailsCubit, SaleOrderdetailsState>(
+            listener: (context, state) {
+              if (state is SaleOrderdetailsvalidationSuccess) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(AppLocalizations.of(context)
+                        .orderValidatedSuccessfully),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              } else if (state is NavigateToSaleOrderdetailsPage) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SaleOrderPage(),
+                  ),
+                );
+              } else if (state is SaleOrderdetailsvalidationError) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('⚠️ ${state.message}'),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+              }
+            },
+            child: BlocBuilder<SaleOrderdetailsCubit, SaleOrderdetailsState>(
+              builder: (context, state) {
+                print(pickingId);
+                if (state is SaleOrderdetailsLoading) {
+                  return _buildLoadingState(context);
+                } else if (state is SaleOrderdetailsError) {
+                  return _buildErrorState(context, state.message);
+                } else if (state is SaleOrderdetailsLoaded) {
+                  return _buildContent(state, context);
                 }
                 return const SizedBox.shrink();
               },
-            )
-          ],*/
-          centerTitle: true,
-          elevation: 0,
-          flexibleSpace: Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFF714B67),
-              borderRadius: const BorderRadius.vertical(
-                bottom: Radius.circular(25),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
             ),
-          ),
-        ),
-        body: BlocListener<SaleOrderdetailsCubit, SaleOrderdetailsState>(
-          listener: (context, state) {
-            if (state is SaleOrderdetailsvalidationSuccess) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                      AppLocalizations.of(context).orderValidatedSuccessfully),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            } else if (state is NavigateToSaleOrderdetailsPage) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => SaleOrderPage(),
-                ),
-              );
-            } else if (state is SaleOrderdetailsvalidationError) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('⚠️ ${state.message}'),
-                  backgroundColor: Colors.orange,
-                ),
-              );
-            }
-          },
-          child: BlocBuilder<SaleOrderdetailsCubit, SaleOrderdetailsState>(
-            builder: (context, state) {
-              print(pickingId);
-              if (state is SaleOrderdetailsLoading) {
-                return _buildLoadingState(context);
-              } else if (state is SaleOrderdetailsError) {
-                return _buildErrorState(context, state.message);
-              } else if (state is SaleOrderdetailsLoaded) {
-                return _buildContent(state, context);
-              }
-              return const SizedBox.shrink();
-            },
           ),
         ),
       ),
@@ -201,10 +212,10 @@ class SaleOrderdetailsPage extends StatelessWidget {
           const SizedBox(height: 16),
           _ProductListSection(moves: state.detail['moves']),
           const SizedBox(height: 24),
-          Text(
-              "${state.detail['state'] ?? AppLocalizations.of(context).notAvailable}"),
-          ViewInvoicesButton(saleOrderId: state.detail['invoice_ids']),
-          CreateInvoiceButton(saleOrderId: pickingId)
+          if (state.detail['invoice_ids'].length > 0)
+            ViewInvoicesButton(saleOrderId: state.detail['invoice_ids']),
+          if (state.detail['invoice_ids'].length == 0)
+            CreateInvoiceButton(saleOrderId: pickingId),
         ],
       ),
     );

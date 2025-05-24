@@ -17,107 +17,123 @@ class StockPickingRequestPage extends StatelessWidget {
     return BlocProvider(
       create: (context) =>
           StockPickingRequestCubit()..fetchStockPickingRequests(),
-      child: Scaffold(
-        appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(70.0),
-          child: Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFF714B67),
-              borderRadius:
-                  const BorderRadius.vertical(bottom: Radius.circular(25)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: AppBar(
-              iconTheme: const IconThemeData(color: Colors.white),
-              title: Text(
-                AppLocalizations.of(context).Transefer_Requests,
-                style: const TextStyle(color: Colors.white),
+      child: WillPopScope(
+        onWillPop: () async {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => HomePage(
+                changeLanguage: (String languageCode) {
+                  // You could also update and save the language preference here if needed.
+                  Localizations.localeOf(context).languageCode;
+                },
               ),
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.home, color: Colors.white),
-                  onPressed: () {
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => HomePage(
-                          changeLanguage: (String languageCode) {},
-                        ),
-                      ),
-                      (route) => false,
-                    );
-                  },
+            ),
+          );
+          return false;
+        },
+        child: Scaffold(
+          appBar: PreferredSize(
+            preferredSize: const Size.fromHeight(70.0),
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF714B67),
+                borderRadius:
+                    const BorderRadius.vertical(bottom: Radius.circular(25)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: AppBar(
+                iconTheme: const IconThemeData(color: Colors.white),
+                title: Text(
+                  AppLocalizations.of(context).Transefer_Requests,
+                  style: const TextStyle(color: Colors.white),
                 ),
-              ],
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.home, color: Colors.white),
+                    onPressed: () {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => HomePage(
+                            changeLanguage: (String languageCode) {},
+                          ),
+                        ),
+                        (route) => false,
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-        body: BlocBuilder<StockPickingRequestCubit, StockPickingRequestState>(
-          builder: (context, state) {
-            if (state is StockPickingRequestInitial) {
-              return const Center(child: CircularProgressIndicator());
-            } else if (state is StockPickingRequestLoading) {
-              return Center(
-                child: Lottie.asset(
-                  'assets/images/loading.json',
-                  width: 200,
-                  height: 200,
-                  fit: BoxFit.fill,
-                ),
-              );
-            } else if (state is StockPickingRequestError) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.error, color: Colors.red, size: 60),
-                    const SizedBox(height: 16),
-                    Text(
-                      state.message,
-                      style: const TextStyle(color: Colors.red),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () {
-                        context
-                            .read<StockPickingRequestCubit>()
-                            .fetchStockPickingRequests();
-                      },
-                      child: Text(AppLocalizations.of(context).tryAgain),
-                    ),
-                  ],
-                ),
-              );
-            } else if (state is StockPickingRequestLoaded) {
-              return Padding(
-                padding: const EdgeInsets.only(top: 18.0),
-                child: _buildRequestsList(context, state),
-              );
-            }
-            return const Center(child: Text('Unknown state'));
-          },
-        ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const AddStockPickingLine(),
-                ));
-          },
-          backgroundColor: const Color(0xFF714B67),
-          child: Text(
-            AppLocalizations.of(context).new_order,
-            style: TextStyle(color: Colors.white),
+          body: BlocBuilder<StockPickingRequestCubit, StockPickingRequestState>(
+            builder: (context, state) {
+              if (state is StockPickingRequestInitial) {
+                return const Center(child: CircularProgressIndicator());
+              } else if (state is StockPickingRequestLoading) {
+                return Center(
+                  child: Lottie.asset(
+                    'assets/images/loading.json',
+                    width: 200,
+                    height: 200,
+                    fit: BoxFit.fill,
+                  ),
+                );
+              } else if (state is StockPickingRequestError) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error, color: Colors.red, size: 60),
+                      const SizedBox(height: 16),
+                      Text(
+                        state.message,
+                        style: const TextStyle(color: Colors.red),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () {
+                          context
+                              .read<StockPickingRequestCubit>()
+                              .fetchStockPickingRequests();
+                        },
+                        child: Text(AppLocalizations.of(context).tryAgain),
+                      ),
+                    ],
+                  ),
+                );
+              } else if (state is StockPickingRequestLoaded) {
+                return Padding(
+                  padding: const EdgeInsets.only(top: 18.0),
+                  child: _buildRequestsList(context, state),
+                );
+              }
+              return const Center(child: Text('Unknown state'));
+            },
+          ),
+          floatingActionButton: FloatingActionButton(
+            onPressed: () {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AddStockPickingLine(),
+                  ));
+            },
+            backgroundColor: const Color(0xFF714B67),
+            child: Text(
+              AppLocalizations.of(context).new_order,
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ),
       ),

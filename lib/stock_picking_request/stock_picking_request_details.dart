@@ -62,37 +62,48 @@ class StockPickingRequestDetailPage extends StatelessWidget {
           }
         },
         builder: (context, state) {
-          return Scaffold(
-            appBar: PreferredSize(
-              preferredSize: const Size.fromHeight(70.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFF714B67),
-                  borderRadius:
-                      const BorderRadius.vertical(bottom: Radius.circular(25)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+          return WillPopScope(
+            onWillPop: () async {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => StockPickingRequestPage(),
                 ),
-                child: AppBar(
-                  iconTheme: const IconThemeData(color: Colors.white),
-                  title: Text(
-                    AppLocalizations.of(context).Transefer_Requests,
-                    style: const TextStyle(color: Colors.white),
+              );
+              return false;
+            },
+            child: Scaffold(
+              appBar: PreferredSize(
+                preferredSize: const Size.fromHeight(70.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF714B67),
+                    borderRadius: const BorderRadius.vertical(
+                        bottom: Radius.circular(25)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                  backgroundColor: Colors.transparent,
-                  elevation: 0,
+                  child: AppBar(
+                    iconTheme: const IconThemeData(color: Colors.white),
+                    title: Text(
+                      AppLocalizations.of(context).Transefer_Requests,
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                    backgroundColor: Colors.transparent,
+                    elevation: 0,
+                  ),
                 ),
               ),
+              body: _buildBody(context, state),
+              /*  bottomNavigationBar: state is StockPickingRequestDetailLoaded
+                  ? _buildBottomBar(context, state)
+                  : null,*/
             ),
-            body: _buildBody(context, state),
-            /*  bottomNavigationBar: state is StockPickingRequestDetailLoaded
-                ? _buildBottomBar(context, state)
-                : null,*/
           );
         },
       ),

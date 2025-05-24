@@ -18,11 +18,15 @@ class invoicingCubit extends Cubit<invoicingState> {
   Future<void> fetchinvoicing() async {
     try {
       emit(invoicingLoading());
-      final prefs = await SharedPreferences.getInstance();
+      final userData = await odooService.getCurrentUser();
+      if (userData == null) {
+        emit(invoicingError('User data not found'));
+        return;
+      }
       final orders = await odooService.fetchRecords(
         'account.move',
         [
-          ["user_id", "=", "${prefs.getString('username')}"],
+          ["0", "=", userData["id"]],
         ],
         [
           'status_in_payment',

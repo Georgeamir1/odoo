@@ -84,54 +84,65 @@ class _QuotationScreenState extends State<QuotationScreen> {
         BlocProvider(create: (_) => ProductsCubit()..getProducts()),
         BlocProvider(create: (_) => SaleOrderCubit()),
       ],
-      child: Scaffold(
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          iconTheme: const IconThemeData(color: Colors.white),
-          title: Text(
-            AppLocalizations.of(context).order,
-            style: const TextStyle(color: Colors.white),
-          ),
-          centerTitle: true,
-          elevation: 0,
-          flexibleSpace: Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFF714B67),
-              borderRadius: const BorderRadius.vertical(
-                bottom: Radius.circular(25),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
+      child: WillPopScope(
+        onWillPop: () async {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => SaleOrderPage(),
+            ),
+          );
+          return false;
+        },
+        child: Scaffold(
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            iconTheme: const IconThemeData(color: Colors.white),
+            title: Text(
+              AppLocalizations.of(context).order,
+              style: const TextStyle(color: Colors.white),
+            ),
+            centerTitle: true,
+            elevation: 0,
+            flexibleSpace: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF714B67),
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(25),
                 ),
-              ],
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-        body: Container(
-          color: Colors.grey[50],
-          child: SafeArea(
-            child: Column(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildHeaderSection(),
-                        const SizedBox(height: 24),
-                        _buildOrderLinesSection(),
-                        const SizedBox(height: 24),
-                        _buildTotalPriceSection(),
-                      ],
+          body: Container(
+            color: Colors.grey[50],
+            child: SafeArea(
+              child: Column(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildHeaderSection(),
+                          const SizedBox(height: 24),
+                          _buildOrderLinesSection(),
+                          const SizedBox(height: 24),
+                          _buildTotalPriceSection(),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                _buildActionButtonsBar(),
-              ],
+                  _buildActionButtonsBar(),
+                ],
+              ),
             ),
           ),
         ),
@@ -332,6 +343,9 @@ class _QuotationScreenState extends State<QuotationScreen> {
                             selected['taxes_id'].isNotEmpty
                                 ? selected['taxes_id'][0].toString()
                                 : null;
+                        print("tax id = ${selected['taxes_id']}");
+                        print(
+                            " tax id = ${_orderLines[index].selectedProductTAX}");
                         _orderLines[index].productId =
                             selected['product_variant_ids'][0];
                         _orderLines[index].PriceProductId = selected['id'];
@@ -633,7 +647,8 @@ class _QuotationScreenState extends State<QuotationScreen> {
                                   "product_id": line.productId,
                                   "product_uom_qty": line.quantity,
                                   "price_unit": line.unitPrice,
-                                  "tax_id": [line.taxId],
+                                  if (line.taxId != null)
+                                    "tax_id": [line.taxId],
                                 }
                               ])
                           .toList(),

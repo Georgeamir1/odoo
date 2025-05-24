@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:flutter_feather_icons/flutter_feather_icons.dart';
 import '../InventoryReceipts/inventory_receipts_ui.dart';
+import '../cash_receipt/cash_receipts_screen.dart';
 import '../delivery_order/delivery_order_ui.dart';
 import '../invoicing/invoicing_list.dart';
 import '../localization.dart';
@@ -12,6 +13,7 @@ import '../login/login_ui.dart';
 import '../networking/odoo_service.dart';
 import '../sales_order/sales_order_list.dart';
 import '../stock_picking_request/stock_picking_request_ui.dart';
+import '../warehouse_stock/warehouse_stock_ui.dart';
 
 class HomePage extends StatefulWidget {
   final Function(String) changeLanguage;
@@ -35,6 +37,7 @@ class _HomePageState extends State<HomePage> {
   Future<void> _loadUsername() async {
     final service = OdooRpcService();
     final user = await service.getCurrentUser();
+
     if (user != null && user.containsKey('name')) {
       setState(() {
         username = user['name'];
@@ -390,6 +393,24 @@ class _HomePageState extends State<HomePage> {
                     builder: (context) => const StockPickingRequestPage()),
               ),
             ),
+            _buildMainMenuCard(
+              icon: FeatherIcons.database,
+              title: AppLocalizations.of(context).warehouse_stock,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => const WarehouseStockPage()),
+              ),
+            ),
+            _buildMainMenuCard(
+              icon: FeatherIcons.creditCard,
+              title: AppLocalizations.of(context).cash_receipts,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => const CashReceiptsScreen()),
+              ),
+            ),
           ],
         ),
       ],
@@ -490,7 +511,7 @@ class _HomePageState extends State<HomePage> {
             AppLocalizations.of(context).homeTitle,
             () => Navigator.pop(context),
           ),
-          /*   _buildDrawerItem(
+          _buildDrawerItem(
             context,
             FeatherIcons.shoppingBag,
             AppLocalizations.of(context).order,
@@ -551,9 +572,35 @@ class _HomePageState extends State<HomePage> {
                     builder: (context) => const StockPickingRequestPage()),
               );
             },
-          ),*/
+          ),
+          _buildDrawerItem(
+            context,
+            FeatherIcons.database,
+            AppLocalizations.of(context).warehouse_stock,
+            () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => const WarehouseStockPage()),
+              );
+            },
+          ),
+          _buildDrawerItem(
+            context,
+            FeatherIcons.creditCard,
+            AppLocalizations.of(context).cash_receipts,
+            () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => const CashReceiptsScreen()),
+              );
+            },
+          ),
           const Divider(),
-          /*     _buildDrawerItem(
+          _buildDrawerItem(
             context,
             FeatherIcons.globe,
             'Language',
@@ -563,7 +610,7 @@ class _HomePageState extends State<HomePage> {
                 _showLanguageOptions = true;
               });
             },
-          ),*/
+          ),
           _buildDrawerItem(
             context,
             FeatherIcons.logOut,

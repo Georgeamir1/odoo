@@ -15,7 +15,9 @@ class OdooRpcService {
   Future<int?> login(String username, String password) async {
     try {
       final response = await client.authenticate(_dbName, username, password);
+      print(response);
       _userId = response.userId;
+      print(_userId);
       _sessionId = response.id;
       print("Login successful! User ID: $_userId");
 
@@ -238,7 +240,14 @@ class OdooRpcService {
           ]
         ],
         'kwargs': {
-          'fields': ['name', 'login', 'partner_id', 'company_id', 'email'],
+          'fields': [
+            'name',
+            'login',
+            'partner_id',
+            'company_id',
+            'email',
+            'property_warehouse_id'
+          ],
           'limit': 1,
         },
       });

@@ -13,6 +13,7 @@ class AppLocalizations {
   static final Map<String, Map<String, String>> _localizedValues = {
     'en': {
       'line': 'line',
+      'status': 'status',
       'quickActions': 'Quick Actions',
       'settings': 'settings',
       'Transefer_Requests': 'Transefer Requests',
@@ -32,6 +33,13 @@ class AppLocalizations {
       'Immediate': 'Immediate',
       'invoices': 'invoices',
       'reverse_invoice': 'Reverse Invoice',
+      'warehouse_stock': 'Warehouse Stock',
+      'search_products': 'Search products or locations',
+      'no_stock_items_found': 'No stock items found',
+      'try_again': 'Try Again',
+      'on_hand': 'On Hand',
+      'reserved': 'Reserved',
+      'available': 'Available',
       'reverse_invoice_reason': 'Reason for Reversal',
       'reverse_invoice_date': 'Reversal Date',
       'reverse_invoice_success': 'Invoice reversed successfully',
@@ -149,7 +157,7 @@ class AppLocalizations {
       'invalid_order_line': 'Invalid order line',
       'order_created': 'Order created',
       'no_stock_picking_requests': 'No stock picking requests found',
-      'try_again': 'Try Again',
+      'retry': 'Try Again',
       'origin': 'Origin',
       'source_location': 'Source Location',
       'destination_location': 'Destination Location',
@@ -179,11 +187,23 @@ class AppLocalizations {
       'product_code': 'Product Code',
       'select_product': 'Select Product',
       'product_details': 'Product Details',
-      'returns_created_and_validated':
-          'Returns created and validated successfully',
+      'cash_receipt': 'Cash Receipt',
+      'amount': 'Amount',
+      'please_enter_amount': 'Please enter amount',
+      'please_enter_valid_amount': 'Please enter a valid amount',
+      'please_select_customer': 'Please select a customer',
+      'cash_receipt_success': 'Cash receipt created successfully',
+      'cash_receipt_error': 'Failed to create cash receipt',
+      'cash_receipts': 'Cash Receipts',
+      'no_receipts_found': 'No cash receipts found',
+      'posted': 'Posted',
+      'receipt_details': 'Receipt Details',
+      'receipt_number': 'Receipt Number',
+      'receipt_validated': 'Receipt validated successfully',
     },
     'ar': {
       'line': 'الطلب',
+      'status': 'الحاله',
       'quickActions': "الإجراءات السريعة",
       'settings': 'الإعدادات',
       'Transefer_Requests': 'طلب تحويل',
@@ -204,6 +224,13 @@ class AppLocalizations {
       'reverse_invoice': 'عكس الفاتورة',
       'reverse_invoice_reason': 'سبب العكس',
       'reverse_invoice_date': 'تاريخ العكس',
+      'warehouse_stock': 'مخزون المستودع',
+      'search_products': 'البحث عن المنتجات أو المواقع',
+      'no_stock_items_found': 'لم يتم العثور على عناصر في المخزون',
+      'try_again': 'حاول مرة أخرى',
+      'on_hand': 'في المخزون',
+      'reserved': 'محجوز',
+      'available': 'متاح',
       'reverse_invoice_success': 'تم عكس الفاتورة بنجاح',
       'reverse_invoice_error': 'خطأ في عكس الفاتورة',
       'edit_reversed_invoice': 'تعديل الفاتورة المعكوسة',
@@ -316,7 +343,7 @@ class AppLocalizations {
       'invalid_order_line': 'بند طلب غير صالح',
       'Immediate': 'فوري',
       'no_stock_picking_requests': 'لم يتم العثور على طلبات نقل المخزون',
-      'try_again': 'حاول مرة أخرى',
+      'retry': 'حاول مرة أخرى',
       'origin': 'المصدر',
       'source_location': 'موقع المصدر',
       'destination_location': 'موقع الوجهة',
@@ -345,6 +372,19 @@ class AppLocalizations {
       'product_code': 'رمز المنتج',
       'select_product': 'اختر منتج',
       'product_details': 'تفاصيل المنتج',
+      'cash_receipt': 'إيصال نقدي',
+      'amount': 'المبلغ',
+      'please_enter_amount': 'الرجاء إدخال المبلغ',
+      'please_enter_valid_amount': 'الرجاء إدخال مبلغ صحيح',
+      'please_select_customer': 'الرجاء اختيار العميل',
+      'cash_receipt_success': 'تم إنشاء الإيصال النقدي بنجاح',
+      'cash_receipt_error': 'فشل في إنشاء الإيصال النقدي',
+      'cash_receipts': 'الإيصالات النقدية',
+      'no_receipts_found': 'لم يتم العثور على إيصالات نقدية',
+      'posted': 'تم الترحيل',
+      'receipt_details': 'تفاصيل الإيصال',
+      'receipt_number': 'رقم الإيصال',
+      'receipt_validated': 'تم التحقق من صحة الإيصال بنجاح',
     },
   };
 
@@ -358,6 +398,7 @@ class AppLocalizations {
 
   // Getters for translations
   String get username => _translate('username');
+  String get status => _translate('status');
   String get quickActions => _translate('quickActions');
   String get settings => _translate('settings');
   String get line => _translate('line');
@@ -524,6 +565,30 @@ class AppLocalizations {
   String get productCode => _translate('product_code');
   String get selectProduct => _translate('select_product');
   String get productDetails => _translate('product_details');
+  String get cash_receipt => _translate('cash_receipt');
+  String get amount => _translate('amount');
+  String get please_enter_amount => _translate('please_enter_amount');
+  String get please_enter_valid_amount =>
+      _translate('please_enter_valid_amount');
+  String get please_select_customer => _translate('please_select_customer');
+  String get cash_receipt_success => _translate('cash_receipt_success');
+  String get cash_receipt_error => _translate('cash_receipt_error');
+  String get cash_receipts => _translate('cash_receipts');
+  String get no_receipts_found => _translate('no_receipts_found');
+  String get posted => _translate('posted');
+  String get receipt_details => _translate('receipt_details');
+  String get receipt_number => _translate('receipt_number');
+  String get receipt_validated => _translate('receipt_validated');
+
+  // Warehouse stock page translations
+  String get warehouse_stock => _translate('warehouse_stock');
+  String get search_products => _translate('search_products');
+  String get no_stock_items_found => _translate('no_stock_items_found');
+  String get try_again => _translate('try_again');
+  String get on_hand => _translate('on_hand');
+  String get reserved => _translate('reserved');
+  String get available => _translate('available');
+
   static const LocalizationsDelegate<AppLocalizations> delegate =
       _AppLocalizationsDelegate();
 }

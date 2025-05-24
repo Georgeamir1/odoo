@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../InventoryReceipts/inventory_receipts_ui.dart';
 import '../delivery_order/delivery_order_cubit.dart';
 import '../localization.dart';
 import '../networking/odoo_service.dart';
@@ -36,151 +37,163 @@ class InvoicingDetailsPage extends StatelessWidget {
               DeliveryOrderDetailCubit(OdooRpcService())..GetCompanyName(),
         ),
       ],
-      child: Scaffold(
-        appBar: AppBar(
-          iconTheme: const IconThemeData(color: Colors.white),
-          title: Text(
-            AppLocalizations.of(context).invoicesdetails,
-            style: const TextStyle(color: Colors.white),
-          ),
-          actions: [
-            BlocBuilder<invoicingdetailsCubit, invoicingdetailsState>(
-              builder: (context, state) {
-                if (state is invoicingdetailsLoaded) {
-                  return IconButton(
-                    icon: const Icon(Icons.print, color: Colors.white),
-                    onPressed: () async {
-                      await DeliveryOrderDetailCubit.get(context)
-                          .GetCompanyName();
-                      SharedPreferences prefs =
-                          await SharedPreferences.getInstance();
-                      final orderData = {
-                        'company_name':
-                            DeliveryOrderDetailCubit.get(context).CompanyName1,
-                        'user_name': prefs.getString('username'),
-                        'customer_name':
-                            state.picking['partner_id'][1] ?? 'N/A',
-                        'username': 'Seller Name',
-                        'items': state.detail['moves']
-                                ?.map((move) => {
-                                      'name': move['name'] ?? 'Unknown',
-                                      'quantity': move['product_uom_qty'] ?? 0,
-                                      'price': move['price_unit'] ?? 0,
-                                    })
-                                .toList() ??
-                            [],
-                        'total_before_vat': state.picking['amount_untaxed'],
-                        'vat_amount': state.picking['amount_tax'],
-                        'total_with_vat': state.picking['amount_total'],
-                      };
+      child: WillPopScope(
+        onWillPop: () async {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => invoicingPage(),
+            ),
+          );
+          return false;
+        },
+        child: Scaffold(
+          appBar: AppBar(
+            iconTheme: const IconThemeData(color: Colors.white),
+            title: Text(
+              AppLocalizations.of(context).invoicesdetails,
+              style: const TextStyle(color: Colors.white),
+            ),
+            actions: [
+              BlocBuilder<invoicingdetailsCubit, invoicingdetailsState>(
+                builder: (context, state) {
+                  if (state is invoicingdetailsLoaded) {
+                    return IconButton(
+                      icon: const Icon(Icons.print, color: Colors.white),
+                      onPressed: () async {
+                        await DeliveryOrderDetailCubit.get(context)
+                            .GetCompanyName();
+                        SharedPreferences prefs =
+                            await SharedPreferences.getInstance();
+                        final orderData = {
+                          'company_name': DeliveryOrderDetailCubit.get(context)
+                              .CompanyName1,
+                          'user_name': prefs.getString('username'),
+                          'customer_name':
+                              state.picking['partner_id'][1] ?? 'N/A',
+                          'username': 'Seller Name',
+                          'items': state.detail['moves']
+                                  ?.map((move) => {
+                                        'name': move['name'] ?? 'Unknown',
+                                        'quantity':
+                                            move['product_uom_qty'] ?? 0,
+                                        'price': move['price_unit'] ?? 0,
+                                      })
+                                  .toList() ??
+                              [],
+                          'total_before_vat': state.picking['amount_untaxed'],
+                          'vat_amount': state.picking['amount_tax'],
+                          'total_with_vat': state.picking['amount_total'],
+                        };
 
-                      showDialog(
-                        context: context,
-                        builder: (context) => Dialog(
-                          insetPadding: const EdgeInsets.all(16),
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 500),
-                            child: InVoicePrintScreen(orderData: orderData),
+                        showDialog(
+                          context: context,
+                          builder: (context) => Dialog(
+                            insetPadding: const EdgeInsets.all(16),
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 500),
+                              child: InVoicePrintScreen(orderData: orderData),
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  );
-                }
-                // Navigation for reversed invoice is handled in the BlocListener
-                return Center();
-              },
-            )
-          ],
-          centerTitle: true,
-          elevation: 0,
-          flexibleSpace: Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFF714B67),
-              borderRadius: const BorderRadius.vertical(
-                bottom: Radius.circular(25),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black
-                      .withAlpha(51), // 51 is approximately 0.2 * 255
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
+                        );
+                      },
+                    );
+                  }
+                  // Navigation for reversed invoice is handled in the BlocListener
+                  return Center();
+                },
+              )
+            ],
+            centerTitle: true,
+            elevation: 0,
+            flexibleSpace: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF714B67),
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(25),
                 ),
-              ],
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black
+                        .withAlpha(51), // 51 is approximately 0.2 * 255
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-        body: BlocListener<invoicingdetailsCubit, invoicingdetailsState>(
-          listener: (context, state) {
-            if (state is invoicingdetailsvalidationSuccess) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                      AppLocalizations.of(context).orderValidatedSuccessfully),
-                  backgroundColor: Colors.green,
-                  duration: const Duration(seconds: 2),
-                ),
-              );
-              // Automatically navigate back after success
-              Navigator.pop(context);
-            } else if (state is NavigateToinvoicingdetailsPage) {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => invoicingPage(),
-                ),
-              );
-            } else if (state is invoicingdetailsvalidationError) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('⚠️ ${state.message}'),
-                  backgroundColor: Colors.orange,
-                  duration: const Duration(seconds: 2),
-                ),
-              );
-            } else if (state is invoicingdetailsReversalSuccess) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                      AppLocalizations.of(context).reverse_invoice_success),
-                  backgroundColor: Colors.green,
-                  duration: const Duration(seconds: 2),
-                ),
-              );
-
-              // Automatically navigate to the reversed invoice if we have a valid ID
-              if (state.reversedInvoiceId != null) {
+          body: BlocListener<invoicingdetailsCubit, invoicingdetailsState>(
+            listener: (context, state) {
+              if (state is invoicingdetailsvalidationSuccess) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(AppLocalizations.of(context)
+                        .orderValidatedSuccessfully),
+                    backgroundColor: Colors.green,
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+                // Automatically navigate back after success
+                Navigator.pop(context);
+              } else if (state is NavigateToinvoicingdetailsPage) {
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => EditReversedInvoicePage(
-                      invoiceId: state.reversedInvoiceId!,
+                    builder: (context) => invoicingPage(),
+                  ),
+                );
+              } else if (state is invoicingdetailsvalidationError) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('⚠️ ${state.message}'),
+                    backgroundColor: Colors.orange,
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              } else if (state is invoicingdetailsReversalSuccess) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                        AppLocalizations.of(context).reverse_invoice_success),
+                    backgroundColor: Colors.green,
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+
+                // Automatically navigate to the reversed invoice if we have a valid ID
+                if (state.reversedInvoiceId != null) {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => EditReversedInvoicePage(
+                        invoiceId: state.reversedInvoiceId!,
+                      ),
                     ),
+                  );
+                }
+              } else if (state is invoicingdetailsError) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('⚠️ ${state.message}'),
+                    backgroundColor: Colors.red,
+                    duration: const Duration(seconds: 2),
                   ),
                 );
               }
-            } else if (state is invoicingdetailsError) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('⚠️ ${state.message}'),
-                  backgroundColor: Colors.red,
-                  duration: const Duration(seconds: 2),
-                ),
-              );
-            }
-          },
-          child: BlocBuilder<invoicingdetailsCubit, invoicingdetailsState>(
-            builder: (context, state) {
-              if (state is invoicingdetailsLoading) {
-                return _buildLoadingState(context);
-              } else if (state is invoicingdetailsError) {
-                return _buildErrorState(context, state.message);
-              } else if (state is invoicingdetailsLoaded) {
-                return _buildContent(state, context);
-              }
-              return _buildLoadingState(context); // Default to loading state
             },
+            child: BlocBuilder<invoicingdetailsCubit, invoicingdetailsState>(
+              builder: (context, state) {
+                if (state is invoicingdetailsLoading) {
+                  return _buildLoadingState(context);
+                } else if (state is invoicingdetailsError) {
+                  return _buildErrorState(context, state.message);
+                } else if (state is invoicingdetailsLoaded) {
+                  return _buildContent(state, context);
+                }
+                return _buildLoadingState(context); // Default to loading state
+              },
+            ),
           ),
         ),
       ),
@@ -955,6 +968,8 @@ class _ProductListItem extends StatelessWidget {
 
     final priceUnit = (move['price_unit'] is num ? move['price_unit'] : 0.0)
         .toStringAsFixed(2);
+    final quantity =
+        (move['quantity'] is num ? move['quantity'] : 0.0).toStringAsFixed(2);
 
     final priceSubtotal =
         (move['price_total'] is num ? move['price_total'] : 0.0)
@@ -992,21 +1007,23 @@ class _ProductListItem extends StatelessWidget {
             const SizedBox(height: 12),
 
             // Main Details Grid
-            GridView.count(
-              physics: const NeverScrollableScrollPhysics(),
-              shrinkWrap: true,
-              crossAxisCount: 2,
-              childAspectRatio: 3,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-              children: [
-                _buildDetailItem(
-                  context,
-                  Icons.attach_money,
-                  AppLocalizations.of(context).unit_price,
-                  '\$$priceUnit',
-                ),
-              ],
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildDetailItem(
+                    context,
+                    AppLocalizations.of(context).unit_price,
+                    '$priceUnit',
+                  ),
+                  _buildDetailItem(
+                    context,
+                    AppLocalizations.of(context).quantity,
+                    '$quantity',
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 12),
 
@@ -1046,14 +1063,12 @@ class _ProductListItem extends StatelessWidget {
 
   Widget _buildDetailItem(
     BuildContext context,
-    IconData icon,
     String title,
     String value, [
     Color? color,
   ]) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: color ?? Colors.grey.shade600),
         const SizedBox(width: 8),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,

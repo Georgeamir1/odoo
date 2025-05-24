@@ -286,6 +286,7 @@ class _AddStockPickingLineState extends State<AddStockPickingLine> {
   Future<void> addProductLine() async {
     setState(() => isSubmitting = true);
     final List<String> errors = [];
+    final List<Map<String, dynamic>> lineIds = [];
 
     for (int i = 0; i < _orderLines.length; i++) {
       final line = _orderLines[i];
@@ -304,27 +305,14 @@ class _AddStockPickingLineState extends State<AddStockPickingLine> {
         continue;
       }
 
-      try {
-        await odooService.client.callKw({
-          'model': 'psi.stock.picking.request',
-          'method': 'create',
-          'args': [
-            {
-              'line_ids': [
-                (0, 0, {'product_id': product['id'], 'quantity': quantity})
-              ]
-            }
-          ]
-        });
-      } catch (e) {
-        errors.add('${AppLocalizations.of(context).line} ${i + 1}: $e');
-      }
+      lineIds.add({
+        'product_id': product['id'],
+        'quantity': quantity,
+      });
     }
 
-    setState(() => isSubmitting = false);
-
     if (errors.isNotEmpty) {
-      print(errors);
+      setState(() => isSubmitting = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(errors.join('\n')),
@@ -334,13 +322,34 @@ class _AddStockPickingLineState extends State<AddStockPickingLine> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(AppLocalizations.of(context).done),
-        backgroundColor: Colors.green,
-      ),
-    );
-    Navigator.pop(context, true);
+    try {
+      await odooService.client.callKw({
+        "model": "psi.stock.picking.request",
+        "method": "create",
+        "args": [
+          {
+            "line_ids": lineIds.map((line) => [0, 0, line]).toList(),
+          }
+        ],
+        "kwargs": {}
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).done),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.pop(context, true);
+    } catch (e) {
+      setState(() => isSubmitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 }
 

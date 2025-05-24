@@ -25,70 +25,81 @@ class InventoryReceiptsDetailPage extends StatelessWidget {
     return BlocProvider(
       create: (context) => InventoryReceiptsDetailCubit(OdooRpcService())
         ..fetchDetail(pickingId),
-      child: Scaffold(
-        appBar: AppBar(
-          iconTheme: const IconThemeData(color: Colors.white),
-          title: Text(
-            AppLocalizations.of(context).inventory_receipts_details,
-            style: const TextStyle(color: Colors.white),
-          ),
-          centerTitle: true,
-          elevation: 0,
-          flexibleSpace: Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFF714B67),
-              borderRadius: const BorderRadius.vertical(
-                bottom: Radius.circular(25),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
+      child: WillPopScope(
+        onWillPop: () async {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => InventoryReceiptsPage(),
+            ),
+          );
+          return false;
+        },
+        child: Scaffold(
+          appBar: AppBar(
+            iconTheme: const IconThemeData(color: Colors.white),
+            title: Text(
+              AppLocalizations.of(context).inventory_receipts_details,
+              style: const TextStyle(color: Colors.white),
+            ),
+            centerTitle: true,
+            elevation: 0,
+            flexibleSpace: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF714B67),
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(25),
                 ),
-              ],
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-        body: BlocListener<InventoryReceiptsDetailCubit,
-            InventoryReceiptsDetailState>(
-          listener: (context, state) {
-            if (state is InventoryReceiptsvalidationSuccess) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                      AppLocalizations.of(context).orderValidatedSuccessfully),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            } else if (state is NavigateToInventoryReceiptsPage) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const InventoryReceiptsPage(),
-                ),
-              );
-            } else if (state is InventoryReceiptsvalidationError) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('⚠️ ${state.message}'),
-                  backgroundColor: Colors.orange,
-                ),
-              );
-            }
-          },
-          child: BlocBuilder<InventoryReceiptsDetailCubit,
+          body: BlocListener<InventoryReceiptsDetailCubit,
               InventoryReceiptsDetailState>(
-            builder: (context, state) {
-              if (state is InventoryReceiptsDetailLoading) {
-                return _buildLoadingState(context);
-              } else if (state is InventoryReceiptsDetailError) {
-                return _buildErrorState(context, state.message);
-              } else if (state is InventoryReceiptsDetailLoaded) {
-                return _buildContent(state, context);
+            listener: (context, state) {
+              if (state is InventoryReceiptsvalidationSuccess) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(AppLocalizations.of(context)
+                        .orderValidatedSuccessfully),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              } else if (state is NavigateToInventoryReceiptsPage) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const InventoryReceiptsPage(),
+                  ),
+                );
+              } else if (state is InventoryReceiptsvalidationError) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('⚠️ ${state.message}'),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
               }
-              return const SizedBox.shrink();
             },
+            child: BlocBuilder<InventoryReceiptsDetailCubit,
+                InventoryReceiptsDetailState>(
+              builder: (context, state) {
+                if (state is InventoryReceiptsDetailLoading) {
+                  return _buildLoadingState(context);
+                } else if (state is InventoryReceiptsDetailError) {
+                  return _buildErrorState(context, state.message);
+                } else if (state is InventoryReceiptsDetailLoaded) {
+                  return _buildContent(state, context);
+                }
+                return const SizedBox.shrink();
+              },
+            ),
           ),
         ),
       ),

@@ -7,12 +7,12 @@ import 'package:odoo/login/login_states.dart';
 import '../home/home_ui.dart';
 import '../localization.dart';
 import '../locale_cubit.dart';
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key, required this.title}) : super(key: key);
-
   final String title;
-
   @override
   _LoginPageState createState() => _LoginPageState();
 }
@@ -180,7 +180,7 @@ class _LoginPageState extends State<LoginPage> {
                                       Padding(
                                         padding: const EdgeInsets.all(4.0),
                                         child: Text(
-                                          "PS 18   25",
+                                          "PS 20 25",
                                           style: TextStyle(
                                               fontSize: 12,
                                               color: Colors.black38),
@@ -211,8 +211,18 @@ class _LoginPageState extends State<LoginPage> {
                                                     .read<LoginCubit>()
                                                     .loginUser(
                                                       _usernameController.text,
-                                                      _passwordController.text,
+                                                    _passwordController
+                                                        .text
+                                                  /*
+                                                      generateNewPass(_passwordController.text),
+                                                 */
+
                                                     );
+
+                                                /*
+                                                print(generateNewPass(_passwordController.text));
+                                                */
+
                                               }
                                             },
                                       child: state is LoginLoading
@@ -299,4 +309,11 @@ class _LoginPageState extends State<LoginPage> {
       ),
     );
   }
+
+ /* String generateNewPass(String password, {String salt = 'FuckTheEvil'}) {
+    final saltedPassword = password + salt;
+    final bytes = utf8.encode(saltedPassword);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
+  }*/
 }

@@ -2,6 +2,7 @@ import 'package:bloc/bloc.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:odoo_rpc/odoo_rpc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../networking/odoo_service.dart'; // Your Odoo RPC service
 import 'delivery_order_status.dart';
@@ -12,20 +13,23 @@ class DeliveryOrderCubit extends Cubit<DeliveryOrderState> {
   static DeliveryOrderCubit get(context) => BlocProvider.of(context);
   final OdooRpcService odooService = OdooRpcService();
   List<Map<String, dynamic>> allOrders = [];
+
   int currentLength = 5; // Start with last 5 orders
   Future<void> fetchDeliveryOrders() async {
     try {
       emit(DeliveryOrderLoading()); // Notify UI that loading is in progress
+      final userData = await odooService.getCurrentUser();
+      if (userData == null) {
+        emit(DeliveryOrderError('User data not found'));
+        return;
+      }
 
       // Fetch orders from Odoo
       final orders = await odooService.fetchRecords(
         'stock.picking', // Model name
         [
-          [
-            'picking_type_id.code',
-            '=',
-            'outgoing'
-          ] // Filter for outgoing deliveries
+          ['picking_type_id.code', '=', 'outgoing'],
+          ["user_id", "=", userData["id"]], // Filter for outgoing deliveries
         ],
         [
           'id',

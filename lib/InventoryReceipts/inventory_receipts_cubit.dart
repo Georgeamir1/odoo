@@ -12,16 +12,17 @@ class InventoryReceiptsCubit extends Cubit<InventoryReceiptsState> {
   Future<void> fetchInventoryReceiptss() async {
     try {
       emit(InventoryReceiptsLoading()); // Notify UI that loading is in progress
-
+      final userData = await odooService.getCurrentUser();
+      if (userData == null) {
+        emit(InventoryReceiptsError('User data not found'));
+        return;
+      }
       // Fetch orders from Odoo
       final orders = await odooService.fetchRecords(
         'stock.picking', // Model name
         [
-          [
-            'picking_type_id.code',
-            '=',
-            'incoming'
-          ] // Filter for outgoing deliveries
+          ['picking_type_id.code', '=', 'incoming'],
+          ["user_id", "=", userData["id"]], // Filter for outgoing deliveries
         ],
         [
           'id',
