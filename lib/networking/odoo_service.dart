@@ -265,6 +265,55 @@ class OdooRpcService {
     }
   }
 
+  Future<List<int>?> getCurrentUserLocations() async {
+    try {
+      if (_userId == null) {
+        print("No user is logged in");
+        return null;
+      }
+
+      // Fetch user data to get the warehouse ID
+      final userData = await getCurrentUser();
+      if (userData == null || userData['property_warehouse_id'] == null) {
+        print("User warehouse not found.");
+        return null;
+      }
+
+      final warehouseId = userData['property_warehouse_id'][0];
+
+      final userLocationsData = await client.callKw({
+        'model': 'stock.location',
+        'method': 'search_read',
+        'args': [
+          [
+            ["warehouse_id", "=", warehouseId],
+          ]
+        ],
+        'kwargs': {
+          'fields': ['id'],
+        },
+      });
+
+      if (userLocationsData != null && userLocationsData.isNotEmpty) {
+        // Extract list of location_id[0] values
+        final locationIds = userLocationsData
+            .map<int?>((loc) => loc['id'] != null ? loc['id'] as int : null)
+            .where((id) => id != null)
+            .cast<int>()
+            .toList();
+
+        print("Retrieved location IDs: $locationIds");
+        return locationIds;
+      }
+
+      print("No locations found.");
+      return null;
+    } catch (e) {
+      print("Error getting user locations: $e");
+      return null;
+    }
+  }
+
   Future<void> logout() async {
     try {
       print("Logging out user: $_userId");

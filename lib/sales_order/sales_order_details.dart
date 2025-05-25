@@ -174,7 +174,7 @@ class SaleOrderdetailsPage extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Lottie.asset('assets/images/loading.json'),
+          Lottie.asset('assets/images/loading3.json'),
           const SizedBox(height: 20),
           Text(AppLocalizations.of(context).loadingOrderDetails),
         ],
@@ -251,7 +251,7 @@ class InvoicesListSheet extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('فواتير الطلب'),
+        title: Text(AppLocalizations.of(context).orderInvoices),
         leading: const CloseButton(),
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
@@ -264,7 +264,8 @@ class InvoicesListSheet extends StatelessWidget {
           final invoices = snapshot.data ?? [];
 
           if (invoices.isEmpty) {
-            return const Center(child: Text('لا توجد فواتير لهذا الطلب.'));
+            return Center(
+                child: Text(AppLocalizations.of(context).noInvoicesForOrder));
           }
 
           return ListView.separated(
@@ -286,7 +287,8 @@ class InvoicesListSheet extends StatelessWidget {
                 child: ListTile(
                   leading: const Icon(Icons.receipt),
                   title: Text(invoice['name'] ?? ''),
-                  subtitle: Text('التاريخ: ${invoice['invoice_date'] ?? '—'}'),
+                  subtitle: Text(
+                      '${AppLocalizations.of(context).invoiceDate}: ${invoice['invoice_date'] ?? '—'}'),
                   trailing: Text('${invoice['amount_total'] ?? 0} د.أ'),
                 ),
               );
@@ -307,7 +309,7 @@ class ViewInvoicesButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return ElevatedButton.icon(
       icon: const Icon(Icons.receipt),
-      label: const Text("عرض الفواتير"),
+      label: Text(AppLocalizations.of(context).viewInvoices),
       onPressed: () {
         showModalBottomSheet(
           context: context,
@@ -336,7 +338,7 @@ class CreateInvoiceButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return ElevatedButton.icon(
       icon: const Icon(Icons.receipt_long),
-      label: const Text("إنشاء فاتورة مبدئية"),
+      label: Text(AppLocalizations.of(context).createDraftInvoice),
       onPressed: () async {
         final odoo = OdooRpcService();
 
@@ -380,11 +382,18 @@ class CreateInvoiceButton extends StatelessWidget {
         });
 
         if (context.mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) =>
+                  InvoicingDetailsPage(pickingId: result2['res_id']),
+            ),
+          );
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(result2 != null
-                  ? 'تم إنشاء الفاتورة بنجاح 🎉'
-                  : 'فشل إنشاء الفاتورة'),
+                  ? AppLocalizations.of(context).invoiceCreatedSuccess
+                  : AppLocalizations.of(context).invoiceCreationFailed),
             ),
           );
         }

@@ -92,62 +92,22 @@ class DeliveryOrderPage extends StatelessWidget {
                   builder: (context, state) {
                     if (state is DeliveryOrderLoading) {
                       return Center(
-                          child: Lottie.asset('assets/images/loading4.json',
+                          child: Lottie.asset('assets/images/loading3.json',
                               height: 200, width: 200));
                     }
                     if (state is DeliveryOrderError) {
                       return Center(child: Text(state.message));
                     }
                     if (state is DeliveryOrderLoaded) {
-                      return Stack(
-                        alignment: Alignment.bottomRight,
-                        children: [
-                          buildOrderList(
-                            context,
-                            state.orders,
-                            () => context.read<DeliveryOrderCubit>().loadMore(),
-                          ),
-                          if (state.orders.length <
-                              context
-                                  .read<DeliveryOrderCubit>()
-                                  .allOrders
-                                  .length)
-                            Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  FloatingActionButton.extended(
-                                    onPressed: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              newdeliveryorderScreen(),
-                                        ),
-                                      );
-                                    },
-                                    label: Text(
-                                        AppLocalizations.of(context).new_order,
-                                        style: TextStyle(color: Colors.white)),
-                                    tooltip: "Load more orders",
-                                    backgroundColor: Color(0xFF714B67),
-                                  ),
-                                  /*     FloatingActionButton.extended(
-                                    onPressed: () => context
-                                        .read<DeliveryOrderCubit>()
-                                        .loadMore(),
-                                    label: Text(
-                                        AppLocalizations.of(context).load_more,
-                                        style: TextStyle(color: Colors.white)),
-                                    tooltip: "Load more orders",
-                                    backgroundColor: Color(0xFF714B67),
-                                  ),*/
-                                ],
-                              ),
-                            ),
-                        ],
+                      if (state.orders.isEmpty) {
+                        return Center(
+                            child: Text(
+                                AppLocalizations.of(context).no_orders_found));
+                      }
+                      return buildOrderList(
+                        context,
+                        state.orders,
+                        () => context.read<DeliveryOrderCubit>().loadMore(),
                       );
                     }
                     return Center(
@@ -155,6 +115,20 @@ class DeliveryOrderPage extends StatelessWidget {
                             Text(AppLocalizations.of(context).no_orders_found));
                   },
                 ),
+              ),
+              floatingActionButton: FloatingActionButton.extended(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => newdeliveryorderScreen(),
+                    ),
+                  );
+                },
+                label: Text(AppLocalizations.of(context).new_order,
+                    style: TextStyle(color: Colors.white)),
+                tooltip: "Load more orders",
+                backgroundColor: Color(0xFF714B67),
               ),
             ),
           );

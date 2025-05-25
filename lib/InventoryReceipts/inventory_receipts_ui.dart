@@ -89,71 +89,52 @@ class InventoryReceiptsPage extends StatelessWidget {
                   builder: (context, state) {
                     if (state is InventoryReceiptsLoading) {
                       return Center(
-                          child: Lottie.asset('assets/images/loading4.json',
+                          child: Lottie.asset('assets/images/loading3.json',
                               height: 200, width: 200));
                     }
                     if (state is InventoryReceiptsError) {
                       return Center(child: Text(state.message));
                     }
                     if (state is InventoryReceiptsLoaded) {
-                      return Stack(
-                        alignment: Alignment
-                            .bottomRight, // Positions the FAB in the bottom right.
-                        children: [
-                          // Your list widget should expand as needed.
-                          buildOrderList(
-                            context,
-                            state.orders,
-                            () => context
-                                .read<InventoryReceiptsCubit>()
-                                .loadMore(),
+                      if (state.orders.isEmpty) {
+                        return Center(
+                            child: Text(
+                          AppLocalizations.of(context).no_orders_found,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey[600],
                           ),
-                          if (state.orders.length <
-                              context
-                                  .read<InventoryReceiptsCubit>()
-                                  .allOrders
-                                  .length)
-                            Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  FloatingActionButton.extended(
-                                    onPressed: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              NewInventoryReceiptsScreen(),
-                                        ),
-                                      );
-                                    },
-                                    label: Text(
-                                      AppLocalizations.of(context).new_order,
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                    backgroundColor: Color(0xFF714B67),
-                                  ),
-                                  /*           FloatingActionButton.extended(
-                                    onPressed: () => context
-                                        .read<InventoryReceiptsCubit>()
-                                        .loadMore(),
-                                    label: Text(
-                                      AppLocalizations.of(context).load_more,
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                    backgroundColor: Color(0xFF714B67),
-                                  ),*/
-                                ],
-                              ),
-                            ),
-                        ],
+                          textAlign: TextAlign.center,
+                        ));
+                      }
+                      // Use the buildOrderList function to display the orders.
+                      // This function should be defined in your widgets.dart file.
+                      // It should take the context, list of orders, and a load more function.
+                      return buildOrderList(
+                        context,
+                        state.orders,
+                        () => context.read<InventoryReceiptsCubit>().loadMore(),
                       );
                     }
                     return const Center(child: Text('No orders found'));
                   },
                 ),
+              ),
+              floatingActionButton: FloatingActionButton.extended(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => NewInventoryReceiptsScreen(),
+                    ),
+                  );
+                },
+                label: Text(
+                  AppLocalizations.of(context).new_order,
+                  style: TextStyle(color: Colors.white),
+                ),
+                backgroundColor: Color(0xFF714B67),
               ),
             ),
           );
@@ -213,7 +194,7 @@ class InventoryReceiptsSearch extends SearchDelegate {
             return Center(child: Text(state.message));
           }
           return Center(
-              child: Lottie.asset('assets/images/loading4.json',
+              child: Lottie.asset('assets/images/loading3.json',
                   height: 10, width: 10));
         },
       ),

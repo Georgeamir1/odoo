@@ -134,7 +134,8 @@ class EditReversedInvoicePage extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Lottie.asset('assets/images/loading.json', width: 120, height: 120),
+            Lottie.asset('assets/images/loading3.json',
+                width: 120, height: 120),
             const SizedBox(height: 20),
             Text(
               AppLocalizations.of(context).loadingOrderDetails,

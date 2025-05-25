@@ -18,15 +18,11 @@ class invoicingCubit extends Cubit<invoicingState> {
   Future<void> fetchinvoicing() async {
     try {
       emit(invoicingLoading());
-      final userData = await odooService.getCurrentUser();
-      if (userData == null) {
-        emit(invoicingError('User data not found'));
-        return;
-      }
+      final prefs = await SharedPreferences.getInstance();
       final orders = await odooService.fetchRecords(
         'account.move',
         [
-          ["0", "=", userData["id"]],
+          ["user_id", "=", "${prefs.getString('username')}"],
         ],
         [
           'status_in_payment',
@@ -48,6 +44,39 @@ class invoicingCubit extends Cubit<invoicingState> {
       ));
     } catch (e) {
       emit(invoicingError("Failed to fetch delivery orders: ${e.toString()}"));
+    }
+  }
+
+  Future<void> refreshinvoicing() async {
+    try {
+      emit(invoicingLoading());
+      final prefs = await SharedPreferences.getInstance();
+      final orders = await odooService.fetchRecords(
+        'account.move',
+        [
+          ["user_id", "=", "${prefs.getString('username')}"],
+        ],
+        [
+          'status_in_payment',
+          'state',
+          'partner_id',
+          'create_date',
+          'name',
+          'amount_total',
+        ],
+      );
+
+      allOrders = List<Map<String, dynamic>>.from(orders);
+      filteredOrders = allOrders;
+      currentDisplayLength = 5;
+
+      emit(invoicingLoaded(
+        filteredOrders.take(currentDisplayLength).toList(),
+        hasReachedMax: currentDisplayLength >= filteredOrders.length,
+      ));
+    } catch (e) {
+      emit(
+          invoicingError("Failed to refresh delivery orders: ${e.toString()}"));
     }
   }
 
@@ -74,6 +103,8 @@ class invoicingCubit extends Cubit<invoicingState> {
           return (order['state']?.toString().toLowerCase() ?? '')
                   .contains(queryLower) ||
               (order['name']?.toString().toLowerCase() ?? '')
+                  .contains(queryLower) ||
+              (order['partner_id']?.toString().toLowerCase() ?? '')
                   .contains(queryLower) ||
               (order['origin']?.toString().toLowerCase() ?? '')
                   .contains(queryLower);

@@ -50,7 +50,6 @@ class AppLocalizations {
       'save_and_post': 'Save & Post',
       'update_success': 'Invoice updated successfully',
       'post_success': 'Invoice posted successfully',
-      'retry': 'Retry',
       'sales_Order_details': 'Sales order details',
       'no_tax_applied': 'No taxes applied',
       'sales': 'Sales',
@@ -132,7 +131,7 @@ class AppLocalizations {
       'filter': 'Filter',
       'new': 'New',
       'load_more': 'Load More',
-      'no_orders_found': 'No orders found',
+      'no_orders_found': 'No orders exist',
       'no_matching_orders_found': 'No matching orders found',
       'clear': 'Clear',
       'back': 'Back',
@@ -200,6 +199,15 @@ class AppLocalizations {
       'receipt_details': 'Receipt Details',
       'receipt_number': 'Receipt Number',
       'receipt_validated': 'Receipt validated successfully',
+      'receipt_Confirm': 'Receipt Confirmed successfully',
+      'salesOrderDetails': 'Sales Order Details',
+      'viewInvoices': 'View Invoices',
+      'createDraftInvoice': 'Create Invoice',
+      'orderInvoices': 'Order Invoices',
+      'noInvoicesForOrder': 'No invoices for this order.',
+      'invoiceDate': 'Date',
+      'invoiceCreatedSuccess': 'Invoice created successfully 🎉',
+      'invoiceCreationFailed': 'Failed to create invoice',
     },
     'ar': {
       'line': 'الطلب',
@@ -343,7 +351,6 @@ class AppLocalizations {
       'invalid_order_line': 'بند طلب غير صالح',
       'Immediate': 'فوري',
       'no_stock_picking_requests': 'لم يتم العثور على طلبات نقل المخزون',
-      'retry': 'حاول مرة أخرى',
       'origin': 'المصدر',
       'source_location': 'موقع المصدر',
       'destination_location': 'موقع الوجهة',
@@ -385,6 +392,15 @@ class AppLocalizations {
       'receipt_details': 'تفاصيل الإيصال',
       'receipt_number': 'رقم الإيصال',
       'receipt_validated': 'تم التحقق من صحة الإيصال بنجاح',
+      'receipt_Confirm': 'تم تأكيد الإيصال بنجاح',
+      'salesOrderDetails': 'تفاصيل طلب المبيعات',
+      'viewInvoices': 'عرض الفواتير',
+      'createDraftInvoice': 'إنشاء فاتورة ',
+      'orderInvoices': 'فواتير الطلب',
+      'noInvoicesForOrder': 'لا توجد فواتير لهذا الطلب.',
+      'invoiceDate': 'التاريخ',
+      'invoiceCreatedSuccess': 'تم إنشاء الفاتورة بنجاح 🎉',
+      'invoiceCreationFailed': 'فشل إنشاء الفاتورة',
     },
   };
 
@@ -398,6 +414,7 @@ class AppLocalizations {
 
   // Getters for translations
   String get username => _translate('username');
+  String get orderInvoices => _translate('orderInvoices');
   String get status => _translate('status');
   String get quickActions => _translate('quickActions');
   String get settings => _translate('settings');
@@ -579,6 +596,7 @@ class AppLocalizations {
   String get receipt_details => _translate('receipt_details');
   String get receipt_number => _translate('receipt_number');
   String get receipt_validated => _translate('receipt_validated');
+  String get receipt_Confirm => _translate('receipt_Confirm');
 
   // Warehouse stock page translations
   String get warehouse_stock => _translate('warehouse_stock');
@@ -588,6 +606,14 @@ class AppLocalizations {
   String get on_hand => _translate('on_hand');
   String get reserved => _translate('reserved');
   String get available => _translate('available');
+
+  // Add these getter methods at the end of the class, before the last closing brace
+  String get viewInvoices => _translate('viewInvoices');
+  String get createDraftInvoice => _translate('createDraftInvoice');
+  String get noInvoicesForOrder => _translate('noInvoicesForOrder');
+  String get invoiceDate => _translate('invoiceDate');
+  String get invoiceCreatedSuccess => _translate('invoiceCreatedSuccess');
+  String get invoiceCreationFailed => _translate('invoiceCreationFailed');
 
   static const LocalizationsDelegate<AppLocalizations> delegate =
       _AppLocalizationsDelegate();

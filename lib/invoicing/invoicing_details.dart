@@ -205,7 +205,7 @@ class InvoicingDetailsPage extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Lottie.asset('assets/images/loading.json'),
+          Lottie.asset('assets/images/loading3.json'),
           const SizedBox(height: 20),
           Text(AppLocalizations.of(context).loadingOrderDetails),
         ],
@@ -666,6 +666,7 @@ class _PaymentSectionState extends State<PaymentSection> {
                   const SizedBox(height: 12),
 
                   // Quick Payment Buttons
+/*
                   if (widget.notPaid > 0) ...[
                     Text(
                       'Quick Payment:',
@@ -687,6 +688,7 @@ class _PaymentSectionState extends State<PaymentSection> {
                     ),
                     const SizedBox(height: 16),
                   ],
+*/
 
                   // Process Payment Button
                   SizedBox(
@@ -821,12 +823,14 @@ class _OrderHeaderCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  detail['partner_id'] == false
-                      ? AppLocalizations.of(context).unknown_customer
-                      : detail['partner_id'][1],
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold, color: Color(0xFF714B67)),
+                Expanded(
+                  child: Text(
+                    detail['partner_id'] == false
+                        ? AppLocalizations.of(context).unknown_customer
+                        : detail['partner_id'][1],
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold, color: Color(0xFF714B67)),
+                  ),
                 ),
                 _buildStatusChip(picking['state']),
               ],

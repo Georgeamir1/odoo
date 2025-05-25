@@ -115,7 +115,7 @@ class DeliveryOrderDetailPage extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Lottie.asset(
-            'assets/images/loading.json',
+            'assets/images/loading3.json',
           ),
           const SizedBox(height: 20),
           Text(

@@ -18,7 +18,7 @@ class DeliveryOrderCubit extends Cubit<DeliveryOrderState> {
   Future<void> fetchDeliveryOrders() async {
     try {
       emit(DeliveryOrderLoading()); // Notify UI that loading is in progress
-      final userData = await odooService.getCurrentUser();
+      final userData = await odooService.getCurrentUserLocations();
       if (userData == null) {
         emit(DeliveryOrderError('User data not found'));
         return;
@@ -27,18 +27,19 @@ class DeliveryOrderCubit extends Cubit<DeliveryOrderState> {
       // Fetch orders from Odoo
       final orders = await odooService.fetchRecords(
         'stock.picking', // Model name
+
         [
           ['picking_type_id.code', '=', 'outgoing'],
-          ["user_id", "=", userData["id"]], // Filter for outgoing deliveries
+          ["location_id", "=", userData], // Filter for outgoing deliveries
         ],
         [
-          'id',
-          'name',
-          'state',
-          'partner_id', // Include partner_id (customer)
-          'origin', // Include origin (reference)
-          'scheduled_date', // Include scheduled date
-          'move_ids_without_package', // Include moves for detailed information
+          "id",
+          "name",
+          "state",
+          "partner_id", // Include partner_id (customer)
+          "origin", // Include origin (reference)
+          "scheduled_date", // Include scheduled date
+          "move_ids_without_package", // Include moves for detailed information
         ],
       );
 

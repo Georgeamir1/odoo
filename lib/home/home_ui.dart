@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:flutter_feather_icons/flutter_feather_icons.dart';
 import '../InventoryReceipts/inventory_receipts_ui.dart';
-import '../cash_receipt/cash_receipts_screen.dart';
+import '../cash_receipt/cash_receipt_list.dart';
 import '../delivery_order/delivery_order_ui.dart';
 import '../invoicing/invoicing_list.dart';
 import '../localization.dart';
@@ -408,7 +408,7 @@ class _HomePageState extends State<HomePage> {
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                    builder: (context) => const CashReceiptsScreen()),
+                    builder: (context) => const CashReceiptListPage()),
               ),
             ),
           ],
@@ -586,7 +586,7 @@ class _HomePageState extends State<HomePage> {
               );
             },
           ),
-          _buildDrawerItem(
+          /*    _buildDrawerItem(
             context,
             FeatherIcons.creditCard,
             AppLocalizations.of(context).cash_receipts,
@@ -598,7 +598,7 @@ class _HomePageState extends State<HomePage> {
                     builder: (context) => const CashReceiptsScreen()),
               );
             },
-          ),
+          ),*/
           const Divider(),
           _buildDrawerItem(
             context,

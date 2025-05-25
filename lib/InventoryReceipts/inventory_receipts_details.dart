@@ -111,7 +111,7 @@ class InventoryReceiptsDetailPage extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Lottie.asset('assets/images/loading.json'),
+          Lottie.asset('assets/images/loading3.json'),
           const SizedBox(height: 20),
           Text(AppLocalizations.of(context).loadingOrderDetails),
         ],

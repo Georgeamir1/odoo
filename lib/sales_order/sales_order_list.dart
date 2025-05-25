@@ -88,62 +88,43 @@ class SaleOrderPage extends StatelessWidget {
                   builder: (context, state) {
                     if (state is SaleOrderLoading) {
                       return Center(
-                          child: Lottie.asset('assets/images/loading4.json',
+                          child: Lottie.asset('assets/images/loading3.json',
                               height: 200, width: 200));
                     }
                     if (state is SaleOrderError) {
                       return Center(child: Text(state.message));
                     }
                     if (state is SaleOrderLoaded) {
-                      return Stack(
-                        alignment: Alignment
-                            .bottomRight, // Positions the FAB in the bottom right.
-                        children: [
-                          // Your list widget should expand as needed.
-                          buildOrderList(
-                            context,
-                            state.orders,
-                            () => context.read<SaleOrderCubit>().loadMore(),
-                          ),
-
-                          Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                FloatingActionButton.extended(
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => QuotationScreen(),
-                                      ),
-                                    );
-                                  },
-                                  label: Text(
-                                    AppLocalizations.of(context).new_order,
-                                    style: TextStyle(color: Colors.white),
-                                  ),
-                                  backgroundColor: Color(0xFF714B67),
-                                ),
-                                /*  FloatingActionButton.extended(
-                                    onPressed: () =>
-                                        context.read<SaleOrderCubit>().loadMore(),
-                                    label: Text(
-                                      AppLocalizations.of(context).load_more,
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                    backgroundColor: Color(0xFF714B67),
-                                  ),*/
-                              ],
-                            ),
-                          ),
-                        ],
+                      if (state.orders.isEmpty) {
+                        return Center(
+                            child: Text(
+                                AppLocalizations.of(context).no_orders_found,
+                                style: TextStyle(fontSize: 18)));
+                      }
+                      return buildOrderList(
+                        context,
+                        state.orders,
+                        () => context.read<SaleOrderCubit>().loadMore(),
                       );
                     }
                     return const Center(child: Text('No orders found'));
                   },
                 ),
+              ),
+              floatingActionButton: FloatingActionButton.extended(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => QuotationScreen(),
+                    ),
+                  );
+                },
+                label: Text(
+                  AppLocalizations.of(context).new_order,
+                  style: TextStyle(color: Colors.white),
+                ),
+                backgroundColor: Color(0xFF714B67),
               ),
             ),
           );

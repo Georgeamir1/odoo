@@ -82,7 +82,7 @@ class StockPickingRequestPage extends StatelessWidget {
               } else if (state is StockPickingRequestLoading) {
                 return Center(
                   child: Lottie.asset(
-                    'assets/images/loading.json',
+                    'assets/images/loading3.json',
                     width: 200,
                     height: 200,
                     fit: BoxFit.fill,
